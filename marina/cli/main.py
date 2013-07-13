@@ -5,6 +5,7 @@ from cliff.app import App
 from cliff.commandmanager import CommandManager
 
 from .commands.mksite import MakeSite
+from .commands.ship import Ship
 
 
 def main(argv=sys.argv[1:]):
@@ -27,6 +28,7 @@ class MarinaApp(App):
         )
         commands = {
             'mksite': MakeSite,
+            'ship': Ship,
         }
         for k, v in commands.items():
             mgr.add_command(k, v)
