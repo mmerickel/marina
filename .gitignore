@@ -58,3 +58,5 @@ env/
 # editor
 ########
 *~
+
+*flymake.py
