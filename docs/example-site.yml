@@ -1,0 +1,22 @@
+---
+registry: {url}
+services:
+  - myapp:
+    repo: {repo}
+    run: {command}
+    num: 5
+    env: 
+      key: val
+    http: true
+    needs: 
+      - redis: dsn
+    provides:
+      connection: unix:/tmp/myapp.sock
+      http_endpoint: /stuff
+  - redis:
+    repo: redis
+    run: redis-server /etc/redis-config
+    env: 
+      key: val
+    provides:
+      dsn: redis:{port}
