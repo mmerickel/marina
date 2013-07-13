@@ -15,4 +15,6 @@ class Ship(Command):
         return parser
 
     def take_action(self, args):
+        """
+        """
         pass

@@ -1,8 +1,11 @@
 ---
+nodes: 
+  - {url}
 registry: {url}
 services:
   - myapp:
-    repo: {repo}
+    repo: {unique_repo}
+    version: {tag}
     run: {command}
     num: 5
     env: 
@@ -20,3 +23,5 @@ services:
       key: val
     provides:
       dsn: redis:{port}
+
+  
