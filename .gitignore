@@ -54,3 +54,7 @@ env/
 *egg_info/
 *egg-info/
 *egg/
+
+# editor
+########
+*~
