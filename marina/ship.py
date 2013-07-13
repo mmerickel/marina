@@ -3,17 +3,16 @@
 """
 import docker
 import yaml
+from . import defaults
 
 
 class ShipIt(object):
-
-    docker_default_url = 'http://localhost:4243'
-    registry_def_url = 'http://localhost:4244'
+    defaults = defaults
 
     def __init__(self, registry, docker_url):
-        docker_url = docker_url or self.docker_default_url
+        docker_url = docker_url or self.defaults.docker_url
         self.docker = docker.Client(docker_url)
-        self.registry = registry or self.registry_def_url
+        self.registry = registry or self.defaults.registry_url
 
     def plan(self, services):
         """
