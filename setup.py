@@ -9,6 +9,7 @@ requires = [
     'cliff',
     'docker-py',
     'requests',
+    'pyyaml',
 ]
 
 entry_points = """
