@@ -4,7 +4,7 @@
 
 `marina mksite`
    Generate a site configuration
-   
+
 `marina ship [configuration]`
    Update an existing site to match a configration and launch it
 
@@ -13,10 +13,10 @@
 
 `marina add [configuration] [service]`
    Add a new container to config, launch in site
-   
+
 `marina remove [configuration] [service]`
    Remove a container from config, shutdown in site
-   
+
 `marina dock`
    Add a node
 
@@ -30,4 +30,4 @@
  - create a new service
  - release a service
  - define endpoints
-   
+
