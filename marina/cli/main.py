@@ -1,7 +1,10 @@
 import pkg_resources
 import sys
 
-import cliff
+from cliff.app import App
+from cliff.commandmanager import CommandManager
+
+from .commands.mksite import MakeSite
 
 
 def main(argv=sys.argv[1:]):
@@ -9,11 +12,11 @@ def main(argv=sys.argv[1:]):
     return app.run(argv)
 
 
-class MarinaApp(cliff.App):
+class MarinaApp(App):
     specifier = 'marina.cli'
 
     def __init__(self):
-        mgr = cliff.CommandManager(self.specifier)
+        mgr = CommandManager(self.specifier)
         super(MarinaApp, self).__init__(
             description=(
                 'Commands for managing a docker-based deployment '
@@ -22,3 +25,8 @@ class MarinaApp(cliff.App):
             version=pkg_resources.get_distribution('marina').version,
             command_manager=mgr,
         )
+        commands = {
+            'mksite': MakeSite,
+        }
+        for k, v in commands.items():
+            mgr.add_command(k, v)

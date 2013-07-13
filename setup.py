@@ -14,7 +14,7 @@ requires = [
 
 entry_points = """
     [console_scripts]
-    marina = marina:main
+    marina = marina.cli.main:main
 """
 
 setup(
