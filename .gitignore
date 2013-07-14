@@ -33,7 +33,7 @@ ehthumbs.db
 Icon?
 Thumbs.db
 
-# Pyramid #
+# Python #
 ###########
 *.pyc
 *.db
@@ -43,7 +43,6 @@ Thumbs.db
 *.coverage
 *.egg-info/
 *.DS_Store
-data
 *.log
 *.settings
 *.swp
@@ -58,5 +57,8 @@ env/
 # editor
 ########
 *~
-
 *flymake.py
+
+# marina
+########
+.vagrant

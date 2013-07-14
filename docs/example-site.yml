@@ -1,27 +1,36 @@
 ---
-nodes: 
-  - {url}
+nodes:
+  - node1: {url}
+  - node2: {url}
+
 registry: {url}
+
 services:
   - myapp:
     repo: {unique_repo}
     version: {tag}
     run: {command}
-    num: 5
-    env: 
+    env:
       key: val
     http: true
-    needs: 
+    needs:
       - redis: dsn
     provides:
       connection: unix:/tmp/myapp.sock
       http_endpoint: /stuff
+    instances:
+      num: 5
+      nodes:
+        - node1
+        - node2
+
   - redis:
     repo: redis
     run: redis-server /etc/redis-config
-    env: 
+    env:
       key: val
     provides:
-      dsn: redis:{port}
-
-  
+      dsn: host:{port}/db0
+    instances:
+      nodes:
+        - node1

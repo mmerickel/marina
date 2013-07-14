@@ -10,7 +10,7 @@ requires = [
     'docker-py',
     'requests',
     'pyyaml',
-    'path.py'
+    'path.py',
 ]
 
 entry_points = """
