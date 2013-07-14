@@ -1,0 +1,6 @@
+---
+- hosts: vagrant
+  user: vagrant
+  roles:
+    - docker-registry
+    - docker

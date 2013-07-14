@@ -1,0 +1,7 @@
+USER=vagrant
+GROUP=vagrant
+VIRTUALENV=/opt/docker-registry
+REGISTRY_DIR=/opt/docker-registry/src
+LOG_FILE=/var/log/docker/registry.log
+NUM_WORKERS=9
+ADDRESS=127.0.0.1:4244

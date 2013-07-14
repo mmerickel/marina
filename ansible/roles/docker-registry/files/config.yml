@@ -1,0 +1,4 @@
+dev:
+    standalone: true
+    storage: local
+    storage_path: /opt/docker-registry/data
