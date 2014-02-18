@@ -3,16 +3,18 @@ from setuptools import setup
 import os
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.md')).read()
+README = open(os.path.join(here, 'README.rst')).read()
 
 requires = [
+    'docker-py',
     'pyyaml',
+    'setuptools',
     'subparse',
 ]
 
 entry_points = """
     [console_scripts]
-    marina = marina.cli.main:main
+    marina = marina.cli:main
 """
 
 setup(
