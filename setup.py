@@ -6,11 +6,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
 
 requires = [
-    'cliff',
-    'docker-py',
-    'requests',
     'pyyaml',
-    'path.py',
+    'subparse',
 ]
 
 entry_points = """

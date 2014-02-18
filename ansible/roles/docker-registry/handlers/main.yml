@@ -1,4 +1,0 @@
----
-- name: restart docker-registry
-  sudo: true
-  service: name=docker-registry state=restarted
