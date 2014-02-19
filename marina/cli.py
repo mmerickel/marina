@@ -78,7 +78,7 @@ class MarinaApp(object):
         )
 
     def out(self, msg):
-        self.stdout.write(msg + '\n')
+        self.stdout.write(msg)
 
     def docker_client(self):
         host = os.environ.get('DOCKER_HOST')

@@ -1,12 +1,12 @@
 name: shootout
-tag: latest
+#tag: latest
 
 compile:
   base_image: ubuntu:12.04
   commands:
     - /bin/bash build.sh
   files:
-    - /srv/env
+    - /srv/venv
     - /srv/shootout
 
 run:

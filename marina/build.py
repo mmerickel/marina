@@ -298,7 +298,7 @@ class DockerBuilder(object):
             repository=image_name,
             tag=image_tag,
         )
-        self.stdout('created image=%s', self.runner_image)
+        self.stdout('created image=%s\n' % self.runner_image)
 
         return True
 
