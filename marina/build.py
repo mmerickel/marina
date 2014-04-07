@@ -23,7 +23,7 @@ def main(cli, args):
         steps.version = args.tag
 
     builder = DockerBuilder(steps, client)
-    builder.stdout = cli.stdout
+    builder.stdout = cli.out
     builder.run()
 
 def parse_build_steps(data):

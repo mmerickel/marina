@@ -77,7 +77,7 @@ class MarinaApp(object):
             format='%(asctime)s %(levelname)s %(message)s',
         )
 
-    def stdout(self, msg):
+    def out(self, msg):
         self.stdout.write(msg)
 
     def docker_client(self):
