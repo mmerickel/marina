@@ -293,9 +293,10 @@ class DockerBuilder(object):
         return True
 
     @contextmanager
-    def _attach(self, container):
+    def _attach(self, container, stdout=None):
         client = self.connector()
-        stdout = self.stdout
+        if stdout is None:
+            stdout = self.stdout
         should_stop = False
 
         def watcher():
