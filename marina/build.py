@@ -1,9 +1,12 @@
 from datetime import datetime
+from contextlib import contextmanager
+import io
 import os
 import os.path
 import shutil
 import sys
 import tempfile
+import threading
 
 import yaml
 
@@ -12,7 +15,6 @@ log = __import__('logging').getLogger(__name__)
 def main(cli, args):
     context_path = os.path.normpath(args.app)
 
-    client = cli.docker_client()
     steps = (
         parse_build_steps_from_file(
             os.path.join(context_path, 'meta.yml')))
@@ -22,7 +24,7 @@ def main(cli, args):
     if args.tag:
         steps.version = args.tag
 
-    builder = DockerBuilder(steps, client)
+    builder = DockerBuilder(steps, cli.docker_client)
     builder.stdout = cli.out
     builder.run()
 
@@ -31,7 +33,7 @@ def parse_build_steps(data):
     return BuildSteps(settings)
 
 def parse_build_steps_from_file(fname):
-    with open(fname, 'rb') as fp:
+    with io.open(fname, 'rb') as fp:
         return parse_build_steps(fp.read())
 
 class BuildSteps(object):
@@ -89,7 +91,7 @@ class BuildSteps(object):
         script.add_archive_patterns(self.compiler.files)
 
         script_path = os.path.join(dir, 'build.sh')
-        with open(script_path, 'wb') as fp:
+        with io.open(script_path, 'wb') as fp:
             script.save(fp)
 
 class BuildScript(object):
@@ -163,9 +165,9 @@ class DockerBuilder(object):
     def stdout(msg):
         sys.stdout.write(msg)
 
-    def __init__(self, steps, client):
+    def __init__(self, steps, connector):
         self.steps = steps
-        self.client = client
+        self.connector = connector
         self.source_container = None
         self.runner_container = None
 
@@ -191,6 +193,8 @@ class DockerBuilder(object):
         self.steps.write_identity_file(self.build_dir)
         self.steps.write_build_script(self.build_dir)
 
+        self.client = self.connector()
+
     def _teardown(self):
         if self.source_container:
             self._remove_container(self.source_container)
@@ -202,6 +206,8 @@ class DockerBuilder(object):
             shutil.rmtree(self.build_dir)
         except IOError:
             log.exception('failed to remove build directory')
+
+        self.client = None
 
     def _remove_container(self, container):
         try:
@@ -239,22 +245,14 @@ class DockerBuilder(object):
         self.source_container = container.get('Id')
         log.info('created source container=%s', self.source_container)
 
-        # we would prefer to attach earlier to guarantee a successful
-        # attachment, but it's not clear whether the client implementation
-        # is thread-safe or not, for us to spin up a separate thread that
-        # can grab the container output
-        #self._attach(container)
-
-        self.client.start(
-            self.source_container,
-            binds={
-                self.build_dir: self.src_volume,
-            },
-        )
-
-        self._attach(self.source_container)
-
-        ret = self.client.wait(self.source_container)
+        with self._attach(self.source_container):
+            self.client.start(
+                self.source_container,
+                binds={
+                    self.build_dir: self.src_volume,
+                },
+            )
+            ret = self.client.wait(self.source_container)
         if ret != 0:
             log.error('source did not build successfully, status=%s', ret)
         else:
@@ -272,17 +270,9 @@ class DockerBuilder(object):
         )
         self.runner_container = container.get('Id')
 
-        # we would prefer to attach earlier to guarantee a successful
-        # attachment, but it's not clear whether the client implementation
-        # is thread-safe or not, for us to spin up a separate thread that
-        # can grab the container output
-        #self._attach(container)
-
-        self.client.start(self.runner_container)
-
-        self._attach(self.runner_container)
-
-        ret = self.client.wait(self.runner_container)
+        with self._attach(self.runner_container):
+            self.client.start(self.runner_container)
+            ret = self.client.wait(self.runner_container)
         if ret != 0:
             log.error('runner did not build successfully, status=%s', ret)
         else:
@@ -302,9 +292,24 @@ class DockerBuilder(object):
 
         return True
 
+    @contextmanager
     def _attach(self, container):
-        for chunk in self.client.attach(container, stream=True):
-            self.stdout(chunk)
+        client = self.connector()
+        stdout = self.stdout
+        should_stop = False
+
+        def watcher():
+            for chunk in client.attach(container, stream=True):
+                stdout(chunk)
+
+                if should_stop:
+                    break
+
+        th = threading.Thread(target=watcher)
+        th.start()
+        yield
+        should_stop = True
+        th.join()
 
 def get_default_ssh_searchpaths():
     for searchpath in (
