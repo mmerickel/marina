@@ -299,17 +299,22 @@ class DockerBuilder(object):
         should_stop = False
 
         def watcher():
-            for chunk in client.attach(container, stream=True):
-                stdout(chunk)
+            try:
+                for chunk in client.attach(container, stream=True):
+                    stdout(chunk)
 
-                if should_stop:
-                    break
+                    if should_stop:
+                        break
+            except:
+                log.error('failed to attach to container=%s', container)
 
         th = threading.Thread(target=watcher)
         th.start()
-        yield
-        should_stop = True
-        th.join()
+        try:
+            yield
+        finally:
+            should_stop = True
+            th.join()
 
 def get_default_ssh_searchpaths():
     for searchpath in (
