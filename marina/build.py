@@ -1,5 +1,6 @@
 from datetime import datetime
 from contextlib import contextmanager
+import copy
 import io
 import os
 import os.path
@@ -307,8 +308,12 @@ class DockerBuilder(object):
     def _build_runner(self):
         log.info('building runner')
 
+        base_image = self.steps.runner.base_image
+        self.runner_conf = self.client.inspect_image(base_image)['config']
+
         container = self.client.create_container(
-            self.steps.runner.base_image,
+            base_image,
+            entrypoint='',
             command='tar xzf "%s" -C /' % self.archive_path,
             volumes_from=self.source_container,
             user='root',
@@ -328,10 +333,14 @@ class DockerBuilder(object):
         image_name, image_tag = self.steps.name, self.steps.version
         self.runner_image = '%s:%s' % (image_name, image_tag)
 
+        conf = copy.deepcopy(self.runner_conf)
+        # XXX add ability to override some configuration from the settings
+
         self.client.commit(
             self.runner_container,
             repository=image_name,
             tag=image_tag,
+            conf=conf,
         )
         self.stdout('created image=%s\n' % self.runner_image)
 
