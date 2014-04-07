@@ -31,6 +31,20 @@ def build(parser):
         ),
     )
     parser.add_argument(
+        '--archive',
+        help=(
+            'Archive the build files into a local tarball.'
+        ),
+    )
+    parser.add_argument(
+        '--archive-only',
+        action='store_true',
+        default=False,
+        help=(
+            'Skip tagging and building the runner image.'
+        ),
+    )
+    parser.add_argument(
         '-t', '--tag',
         help=(
             'Tag to apply to the built image. '

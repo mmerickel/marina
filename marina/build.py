@@ -26,6 +26,8 @@ def main(cli, args):
 
     builder = DockerBuilder(steps, cli.docker_client)
     builder.stdout = cli.out
+    builder.archive_only = args.archive_only
+    builder.archive_file = args.archive
     builder.run()
 
 def parse_build_steps(data):
@@ -161,6 +163,9 @@ class DockerBuilder(object):
     src_volume = '/builder/src'
     dist_volume = '/builder/dist'
 
+    archive_file = None
+    archive_only = False
+
     @staticmethod
     def stdout(msg):
         sys.stdout.write(msg)
@@ -175,6 +180,10 @@ class DockerBuilder(object):
         self._setup()
         try:
             if not self._build_source():
+                return
+            if self.archive_file and not self._build_archive():
+                return
+            if self.archive_only:
                 return
             if not self._build_runner():
                 return
@@ -257,6 +266,42 @@ class DockerBuilder(object):
             log.error('source did not build successfully, status=%s', ret)
         else:
             log.info('source compiled successfully')
+        return ret == 0
+
+    def _build_archive(self):
+        log.info('archiving build products')
+
+        # "docker cp" as of 0.9.1 does not support copying from volumes
+        # so we need to use the workaround of creating a new container
+        # that dumps the contents to stdout
+#        raw = self.client.copy(self.source_container, self.archive_path)
+#        if not raw:
+#            log.error('archive did not finish successfully, status=%s', ret)
+#            return False
+#
+#        with io.open(self.archive_file, 'wb') as fp:
+#            for line in raw:
+#                fp.write(raw)
+
+        container = self.client.create_container(
+            'ubuntu:12.04',
+            command='cat "%s"' % self.archive_path,
+            volumes_from=self.source_container,
+            user='root',
+        )
+
+        try:
+            with io.open(self.archive_file, 'wb') as fp:
+                with self._attach(container, stdout=fp.write):
+                    self.client.start(container)
+                    ret = self.client.wait(container)
+        finally:
+            self._remove_container(container)
+
+        if ret != 0:
+            log.error('failed to write archive to file, status=%s', ret)
+        else:
+            log.info('archive written to file=%s', self.archive_file)
         return ret == 0
 
     def _build_runner(self):
