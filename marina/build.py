@@ -301,6 +301,7 @@ class DockerBuilder(object):
 
         if ret != 0:
             log.error('failed to write archive to file, status=%s', ret)
+            os.unlink(self.archive_file)
         else:
             log.info('archive written to file=%s', self.archive_file)
         return ret == 0
@@ -353,18 +354,45 @@ class DockerBuilder(object):
             stdout = self.stdout
         should_stop = False
 
+        signal = threading.Condition()
+
         def watcher():
+            log.debug('attaching to container=%s', container)
             try:
-                for chunk in client.attach(container, stream=True):
+                stream = client.attach(container, stream=True)
+            except:
+                log.debug('exception caught while attaching to container=%s',
+                          container, exc_info=True)
+                log.error('failed to attach to container=%s', container)
+                raise
+            else:
+                log.debug('attached to container=%s', container)
+
+            signal.acquire()
+            signal.notify_all()
+            signal.release()
+
+            try:
+                for chunk in stream:
                     stdout(chunk)
 
                     if should_stop:
                         break
             except:
-                log.error('failed to attach to container=%s', container)
+                log.debug('exception caught while reading from container=%s',
+                          container, exc_info=True)
+                log.error('failure while reading from attached container=%s',
+                          container)
+                raise
+
+        signal.acquire()
 
         th = threading.Thread(target=watcher)
         th.start()
+
+        # wait until attached before continuing
+        signal.wait()
+        signal.release()
         try:
             yield
         finally:
