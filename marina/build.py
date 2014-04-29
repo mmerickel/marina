@@ -23,6 +23,7 @@ def main(cli, args):
     steps.context_path = context_path
     steps.identity_file = args.identity_file
     if args.tag:
+        log.info('overriding version tag=%s', args.tag)
         steps.version = args.tag
 
     builder = DockerBuilder(steps, cli.docker_client)
