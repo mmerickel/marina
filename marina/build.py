@@ -357,7 +357,6 @@ class DockerBuilder(object):
         signal = threading.Condition()
 
         def watcher():
-            log.debug('attaching to container=%s', container)
             try:
                 stream = client.attach(container, stream=True)
             except:
@@ -365,8 +364,6 @@ class DockerBuilder(object):
                           container, exc_info=True)
                 log.error('failed to attach to container=%s', container)
                 raise
-            else:
-                log.debug('attached to container=%s', container)
 
             signal.acquire()
             signal.notify_all()
