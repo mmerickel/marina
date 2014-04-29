@@ -290,14 +290,15 @@ class DockerBuilder(object):
             volumes_from=self.source_container,
             user='root',
         )
+        self.archive_container = container.get('Id')
 
         try:
             with io.open(self.archive_file, 'wb') as fp:
-                with self._attach(container, stdout=fp.write):
-                    self.client.start(container)
-                    ret = self.client.wait(container)
+                with self._attach(self.archive_container, stdout=fp.write):
+                    self.client.start(self.archive_container)
+                    ret = self.client.wait(self.archive_container)
         finally:
-            self._remove_container(container)
+            self._remove_container(self.archive_container)
 
         if ret != 0:
             log.error('failed to write archive to file, status=%s', ret)
