@@ -4,6 +4,7 @@ import copy
 import io
 import os
 import os.path
+import posixpath
 import shutil
 import sys
 import tempfile
@@ -234,7 +235,7 @@ class DockerBuilder(object):
         log.info('building source')
         self.archive_name = '%s-%s.tar.gz' % (
             self.steps.name, self.steps.version)
-        self.archive_path = os.path.join(self.dist_volume, self.archive_name)
+        self.archive_path = posixpath.join(self.dist_volume, self.archive_name)
 
         container = self.client.create_container(
             self.steps.compiler.base_image,
@@ -242,7 +243,7 @@ class DockerBuilder(object):
             working_dir=self.src_volume,
             environment={
                 'BUILD_ROOT': self.src_volume,
-                'BUILD_CONTEXT': os.path.join(self.src_volume, 'context'),
+                'BUILD_CONTEXT': posixpath.join(self.src_volume, 'context'),
                 'BUILD_ARCHIVE_PATH': self.archive_path,
                 'BUILD_NAME': self.steps.name,
                 'BUILD_VERSION': self.steps.version,
