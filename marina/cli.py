@@ -98,7 +98,7 @@ class MarinaApp(object):
         host = os.environ.get('DOCKER_HOST')
         if host is not None:
             log.debug('found DOCKER_HOST environment variable, using')
-        return docker.Client(host)
+        return docker.Client(host, version='1.11')
 
 def main(argv=None):
     cli = CLI(
