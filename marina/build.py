@@ -372,7 +372,8 @@ class DockerBuilder(object):
         def watcher():
             log.debug('attaching to container=%s', container)
             try:
-                stream = client.attach(container, stream=True)
+                stream = client.attach(container, stream=True,
+                                       stdout=True, stderr=True)
             except:
                 log.debug('exception caught while attaching to container=%s',
                           container, exc_info=True)
