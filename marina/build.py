@@ -257,10 +257,11 @@ class DockerBuilder(object):
         log.info('created source container=%s', self.source_container)
 
         with self._attach(self.source_container):
+            log.debug('starting container=%s', self.source_container)
             self.client.start(
                 self.source_container,
                 binds={
-                    self.build_dir: self.src_volume,
+                    self.build_dir: {'bind': self.src_volume, 'ro': True},
                 },
             )
             log.debug('started container=%s', self.source_container)
@@ -296,6 +297,7 @@ class DockerBuilder(object):
         try:
             with io.open(self.archive_file, 'wb') as fp:
                 with self._attach(self.archive_container, stdout=fp.write):
+                    log.debug('starting container=%s', self.archive_container)
                     self.client.start(
                         self.archive_container,
                         volumes_from=self.source_container,
@@ -327,6 +329,7 @@ class DockerBuilder(object):
         self.runner_container = container.get('Id')
 
         with self._attach(self.runner_container):
+            log.debug('starting container=%s', self.runner_container)
             self.client.start(
                 self.runner_container,
                 volumes_from=self.source_container,
@@ -397,16 +400,18 @@ class DockerBuilder(object):
         signal.acquire()
 
         th = threading.Thread(target=watcher)
+        th.daemon = True
         th.start()
 
         # wait until attached before continuing
         signal.wait()
         signal.release()
-        try:
-            yield
-        finally:
-            should_stop = True
-            th.join()
+        # it'd be nice to cleanup if there's an exception but currently
+        # the stream has no way to specify a timeout so we just daemonize
+        # the thread and let it hang until the process dies
+        yield
+        should_stop = True
+        th.join()
 
 def get_default_ssh_searchpaths():
     for searchpath in (
