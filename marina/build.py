@@ -263,6 +263,7 @@ class DockerBuilder(object):
                     self.build_dir: self.src_volume,
                 },
             )
+            log.debug('started container=%s', self.source_container)
             ret = self.client.wait(self.source_container)
         if ret != 0:
             log.error('source did not build successfully, status=%s', ret)
@@ -288,7 +289,6 @@ class DockerBuilder(object):
         container = self.client.create_container(
             'ubuntu:12.04',
             command='cat "%s"' % self.archive_path,
-            volumes_from=self.source_container,
             user='root',
         )
         self.archive_container = container.get('Id')
@@ -296,7 +296,11 @@ class DockerBuilder(object):
         try:
             with io.open(self.archive_file, 'wb') as fp:
                 with self._attach(self.archive_container, stdout=fp.write):
-                    self.client.start(self.archive_container)
+                    self.client.start(
+                        self.archive_container,
+                        volumes_from=self.source_container,
+                    )
+                    log.debug('started container=%s', self.archive_container)
                     ret = self.client.wait(self.archive_container)
         finally:
             self._remove_container(self.archive_container)
@@ -318,13 +322,16 @@ class DockerBuilder(object):
             base_image,
             entrypoint='',
             command='tar xzf "%s" -C /' % self.archive_path,
-            volumes_from=self.source_container,
             user='root',
         )
         self.runner_container = container.get('Id')
 
         with self._attach(self.runner_container):
-            self.client.start(self.runner_container)
+            self.client.start(
+                self.runner_container,
+                volumes_from=self.source_container,
+            )
+            log.debug('started container=%s', self.runner_container)
             ret = self.client.wait(self.runner_container)
         if ret != 0:
             log.error('runner did not build successfully, status=%s', ret)
