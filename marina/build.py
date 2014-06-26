@@ -10,6 +10,7 @@ import sys
 import tempfile
 import threading
 
+import docker.errors
 import yaml
 
 log = __import__('logging').getLogger(__name__)
@@ -31,6 +32,33 @@ def main(cli, args):
     builder.stdout = cli.out
     builder.archive_only = args.archive_only
     builder.archive_file = args.archive
+
+    if args.use_cache:
+        cache_container = '{0}__buildcache'.format(steps.name)
+        cache_hostpath = None
+        cache_volume = '/tmp/cache'
+        if args.cache:
+            parts = args.cache.split(':', 1)
+            if len(parts) != 2:
+                if posixpath.isabs(parts[0]):
+                    cache_hostpath = parts[0]
+                else:
+                    cache_container = parts[0]
+            else:
+                cache_container, cache_volume = parts
+            if not posixpath.isabs(cache_volume):
+                cli.err('The cache "path" must be an absolute path.')
+                return 1
+
+        builder.cache_container = cache_container
+        builder.cache_hostpath = cache_hostpath
+        builder.cache_volume = cache_volume
+        builder.rebuild_cache = args.rebuild_cache
+    else:
+        builder.cache_container = None
+        builder.cache_hostpath = None
+        builder.cache_volume = None
+        builder.rebuild_cache = False
     builder.run()
 
 def parse_build_steps(data):
@@ -89,8 +117,9 @@ class BuildSteps(object):
         else:
             log.warn('could not find a valid ssh identity file')
 
-    def write_build_script(self, dir):
+    def write_build_script(self, dir, rebuild_cache=False):
         script = BuildScript()
+        script.rebuild_cache = rebuild_cache
 
         script.add_commands(self.compiler.commands)
         script.add_archive_patterns(self.compiler.files)
@@ -101,6 +130,7 @@ class BuildSteps(object):
 
 class BuildScript(object):
     """ The entry point for the build container."""
+    rebuild_cache = False
 
     def __init__(self):
         self.commands = []
@@ -114,6 +144,10 @@ class BuildScript(object):
 
     def save(self, fp):
         fp.write(self.setup_script)
+
+        if self.rebuild_cache:
+            fp.write('find "$BUILD_CACHE" -mindepth 1 -delete\n')
+
         fp.write(self.command_prefix_script)
 
         for command in self.commands:
@@ -121,7 +155,7 @@ class BuildScript(object):
 
         if self.archive_patterns:
             fp.write(self.archive_prefix_script)
-            fp.write('tar czf "$BUILD_ARCHIVE_PATH" --posix %s' % (
+            fp.write('tar czf "$BUILD_ARCHIVE_PATH" --posix %s\n' % (
                 ' '.join(
                     '"%s"' % pattern
                     for pattern in self.archive_patterns
@@ -130,6 +164,8 @@ class BuildScript(object):
 
     setup_script = '''\
 #!/bin/bash
+
+set -eo pipefail
 
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
@@ -143,6 +179,10 @@ cat > /root/.ssh/config << EOF
     StrictHostKeyChecking no
     IdentityFile /root/.ssh/ssh_identity
 EOF
+
+if [ ! -d "$BUILD_CACHE" ]; then
+    mkdir -p "$BUILD_CACHE"
+fi
 '''
 
     command_prefix_script = '''
@@ -166,6 +206,11 @@ class DockerBuilder(object):
     src_volume = '/builder/src'
     dist_volume = '/builder/dist'
 
+    cache_container = None
+    cache_hostpath = None
+    cache_volume = None
+    rebuild_cache = False
+
     archive_file = None
     archive_only = False
 
@@ -182,6 +227,8 @@ class DockerBuilder(object):
     def run(self):
         self._setup()
         try:
+            if not self._create_cache():
+                return
             if not self._build_source():
                 return
             if self.archive_file and not self._build_archive():
@@ -203,7 +250,10 @@ class DockerBuilder(object):
 
         self.steps.write_context(self.build_dir)
         self.steps.write_identity_file(self.build_dir)
-        self.steps.write_build_script(self.build_dir)
+        self.steps.write_build_script(
+            self.build_dir,
+            rebuild_cache=self.rebuild_cache,
+        )
 
         self.client = self.connector()
 
@@ -231,6 +281,37 @@ class DockerBuilder(object):
         except:
             log.exception('failed to remove container=%s', container)
 
+    def _create_cache(self):
+        if not self.cache_container:
+            log.info('no cache container defined, skipping checks')
+            return True
+
+        do_create_cache = False
+        try:
+            self.client.inspect_container(self.cache_container)
+        except docker.errors.APIError as ex:
+            if ex.is_client_error():
+                do_create_cache = True
+                log.debug('could not find cache container=%s',
+                          self.cache_container)
+            else:
+                raise
+
+        if do_create_cache:
+            log.debug('creating cache container')
+            self.client.create_container(
+                'busybox',
+                '/bin/true',
+                volumes=[
+                    self.cache_volume,
+                ],
+                name=self.cache_container,
+            )
+            self.client.start(self.cache_container)
+        else:
+            log.info('found cache container=%s', self.cache_container)
+        return True
+
     def _build_source(self):
         log.info('building source')
         self.archive_name = '%s-%s.tar.gz' % (
@@ -247,6 +328,7 @@ class DockerBuilder(object):
                 'BUILD_ARCHIVE_PATH': self.archive_path,
                 'BUILD_NAME': self.steps.name,
                 'BUILD_VERSION': self.steps.version,
+                'BUILD_CACHE': self.cache_volume,
             },
             volumes=[
                 self.src_volume,
@@ -257,13 +339,26 @@ class DockerBuilder(object):
         self.source_container = container.get('Id')
         log.info('created source container=%s', self.source_container)
 
+        volumes_from, binds = [], {}
+        if self.cache_container:
+            volumes_from.append(self.cache_container)
+
+        binds[self.build_dir] = {
+            'bind': self.src_volume,
+            'ro': True,
+        }
+        if self.cache_hostpath:
+            binds[self.cache_hostpath] = {
+                'bind': self.cache_volume,
+                'rw': True,
+            }
+
         with self._attach(self.source_container):
             log.debug('starting container=%s', self.source_container)
             self.client.start(
                 self.source_container,
-                binds={
-                    self.build_dir: {'bind': self.src_volume, 'ro': True},
-                },
+                volumes_from=volumes_from,
+                binds=binds,
             )
             log.debug('started container=%s', self.source_container)
             ret = self.client.wait(self.source_container)
@@ -289,7 +384,7 @@ class DockerBuilder(object):
 #                fp.write(raw)
 
         container = self.client.create_container(
-            'ubuntu:12.04',
+            'busybox',
             command='cat "%s"' % self.archive_path,
             user='root',
         )

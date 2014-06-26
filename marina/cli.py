@@ -52,6 +52,55 @@ def build(parser):
         ),
     )
     parser.add_argument(
+        '--no-cache',
+        dest='use_cache',
+        action='store_false',
+        default=True,
+        help=(
+            'Do not mount a cache volume when compiling the app.'
+        ),
+    )
+    parser.add_argument(
+        '--cache',
+        metavar='CONTAINER:PATH',
+        help=(
+            'An optional volume or location for the cache. The format is '
+            '"<container_id>:<path>" where the "container_id" must be the '
+            'name or hash of an existing container. The "path" is an absolute '
+            'path to the cache folder/volume within the container.'
+            '\n\n'
+            'By default a container will be created by mangling the name of '
+            'the app by appending "__buildcache" (e.g. "myapp__buildcache").'
+            '\n\n'
+            'This option is ignored if --no-cache is specified.'
+            '\n\n'
+            'The "container_id" may be dropped, in which case the "path" must '
+            'be an absolute path on the host filesystem.'
+            '\n\n'
+            'The "path" may be dropped, in which case it will default to '
+            '"/tmp/cache" and must exist in the specified container.'
+            '\n\n'
+            'Examples:'
+            '\n\n'
+            '  # custom container with default path\n'
+            '  --cache my_cache'
+            '\n\n'
+            '  # custom path inside of container\n'
+            '  --cache my_cache:/tmp/cache'
+            '\n\n'
+            '  # host filesystem\n'
+            '  --cache /tmp/cache'
+        ),
+    )
+    parser.add_argument(
+        '--rebuild-cache',
+        action='store_true',
+        default=False,
+        help=(
+            'Delete any cached artifacts prior to building.'
+        ),
+    )
+    parser.add_argument(
         'app',
         help=(
             'Path to an application folder with a meta.yml file'
@@ -90,6 +139,9 @@ class MarinaApp(object):
             level=level,
             format='%(asctime)s %(levelname)s %(message)s',
         )
+
+    def err(self, msg):
+        self.stderr.write(msg)
 
     def out(self, msg):
         self.stdout.write(msg)
