@@ -1,11 +1,11 @@
 name: dummy
 
 compile:
-  base_image: ubuntu:12.04
+  base_image: ubuntu:14.04
   commands:
     - dd if=/dev/urandom of=/srv/dummy bs=50kB count=1
   files:
     - /srv/dummy
 
 run:
-  base_image: ubuntu:12.04
+  base_image: ubuntu:14.04
