@@ -1,10 +1,11 @@
 from datetime import datetime
 from contextlib import contextmanager
-import copy
 import io
+import json
 import os
 import os.path
 import posixpath
+import re
 import shutil
 import sys
 import tempfile
@@ -88,6 +89,7 @@ class BuildSteps(object):
     class RunStep(object):
         def __init__(self, settings):
             self.base_image = settings['base_image']
+            self.override_config = settings.get('config')
 
     def __init__(self, settings):
         tag = settings.get('tag')
@@ -223,21 +225,20 @@ class DockerBuilder(object):
         self.connector = connector
         self.source_container = None
         self.runner_container = None
+        self.runner_base_image = None
 
     def run(self):
         self._setup()
         try:
             if not self._create_cache():
                 return
-            if not self._build_source():
+            if not self._build_source_container():
                 return
             if self.archive_file and not self._build_archive():
                 return
             if self.archive_only:
                 return
-            if not self._build_runner():
-                return
-            if not self._tag_runner():
+            if not self._build_runner_image():
                 return
         finally:
             self._teardown()
@@ -264,6 +265,9 @@ class DockerBuilder(object):
         if self.runner_container:
             self._remove_container(self.runner_container)
 
+        if self.runner_base_image:
+            self._remove_image(self.runner_base_image)
+
         try:
             shutil.rmtree(self.build_dir)
         except IOError:
@@ -280,6 +284,12 @@ class DockerBuilder(object):
             self.client.remove_container(container)
         except:
             log.exception('failed to remove container=%s', container)
+
+    def _remove_image(self, image):
+        try:
+            self.client.remove_image(image)
+        except:
+            log.exception('failed to remove image=%s', image)
 
     def _create_cache(self):
         if not self.cache_container:
@@ -312,7 +322,7 @@ class DockerBuilder(object):
             log.info('found cache container=%s', self.cache_container)
         return True
 
-    def _build_source(self):
+    def _build_source_container(self):
         log.info('building source')
         self.archive_name = '%s-%s.tar.gz' % (
             self.steps.name, self.steps.version)
@@ -410,12 +420,59 @@ class DockerBuilder(object):
             log.info('archive written to file=%s', self.archive_file)
         return ret == 0
 
-    def _build_runner(self):
-        log.info('building runner')
+    def _build_runner_image(self):
+        log.info('building runner image')
 
+        # we cannot mount the slug into the new image using something like:
+        #     docker build --volumes-from <builder_container>
+        # so instead we inject the slug via:
+        #     docker run --volumes-from <builder_container> \
+        #     <runner_base_image> tar xzf <archive_file> -C /"
+        if not self._build_runner_container():
+            return False
+
+        # commit the runner container as the new base image
+        image = self.client.commit(self.runner_container)
+        self.runner_base_image = image.get('Id')
+        log.debug('committed runner to image=%s', self.runner_base_image)
+
+        # configure the desired image metadata for the runner
+        conf = {}
+        base_image_conf = self.client.inspect_image(
+            self.steps.runner.base_image,
+        )
+        if base_image_conf.get('Author'):
+            conf['author'] = base_image_conf['Author']
+        conf['command'] = base_image_conf['Config']['Cmd'] or []
+        conf['entrypoint'] = base_image_conf['Config']['Entrypoint'] or []
+        conf['user'] = base_image_conf['Config']['User'] or '0'
+        conf['working_dir'] = base_image_conf['Config']['WorkingDir'] or '/'
+
+        buildfile = self._render_buildfile(
+            self.runner_base_image,
+            **conf
+        )
+        log.debug('buildfile: %r', buildfile)
+
+        runner_tag = '{0}:{1}'.format(self.steps.name, self.steps.version)
+        self.runner_image, _ = self._build_image(
+            fileobj=io.BytesIO(buildfile.encode('utf-8')),
+            tag=runner_tag,
+        )
+
+        if not self.runner_image:
+            log.error('failed to build runner image')
+            return False
+
+        # we do not want to delete the base image, it's part of a chain
+        self.runner_base_image = None
+
+        log.info('runner compiled successfully to image=%s', self.runner_image)
+        self.stdout('created image=%s\n' % runner_tag)
+        return True
+
+    def _build_runner_container(self):
         base_image = self.steps.runner.base_image
-        self.runner_conf = self.client.inspect_image(base_image)['config']
-
         container = self.client.create_container(
             base_image,
             entrypoint='',
@@ -433,27 +490,86 @@ class DockerBuilder(object):
             log.debug('started container=%s', self.runner_container)
             ret = self.client.wait(self.runner_container)
         if ret != 0:
-            log.error('runner did not build successfully, status=%s', ret)
-        else:
-            log.info('runner compiled successfully')
-        return ret == 0
-
-    def _tag_runner(self):
-        image_name, image_tag = self.steps.name, self.steps.version
-        self.runner_image = '%s:%s' % (image_name, image_tag)
-
-        conf = copy.deepcopy(self.runner_conf)
-        # XXX add ability to override some configuration from the settings
-
-        self.client.commit(
-            self.runner_container,
-            repository=image_name,
-            tag=image_tag,
-            conf=conf,
-        )
-        self.stdout('created image=%s\n' % self.runner_image)
-
+            log.error('failed to install slug into runner, status=%s', ret)
+            return False
+        log.debug('slug installed into runner container')
         return True
+
+    def _render_buildfile(
+        self,
+        base_image,
+        author=None,
+        command=None,
+        entrypoint=None,
+        ports=None,
+        volumes=None,
+        working_dir=None,
+        user=None,
+        env=None,
+    ):
+        """ Convert an image metadata into a file-like object that can be used
+        as a Dockerfile in a build context.
+
+        """
+        opts = ['FROM {0}'.format(self.runner_base_image)]
+
+        if author is not None:
+            opts.append('MAINTAINER {0}'.format(author))
+
+        if command is not None:
+            opts.append('CMD {0}'.format(command))
+
+        if entrypoint is not None:
+            opts.append('ENTRYPOINT {0}'.format(entrypoint))
+
+        if ports is not None:
+            for port in ports:
+                opts.append('EXPOSE {0}'.format(port))
+
+        if volumes is not None:
+            for volume in volumes:
+                opts.append('VOLUME {0}'.format(volume))
+
+        if working_dir is not None:
+            opts.append('WORKDIR {0}'.format(working_dir))
+
+        if user is not None:
+            opts.append('USER {0}'.format(user))
+
+        if env is not None:
+            for key, value in env:
+                opts.append('ENV {0} {1}'.format(key, value))
+
+        return '\n'.join(opts)
+
+    def _build_image(self, **kw):
+        """ Thin wrapper around :meth:`docker.Client.build` that can stream
+        the build output.
+
+        """
+        kw['stream'] = True
+        raw_stream = self.client.build(**kw)
+
+        stream = io.StringIO()
+        for raw_chunk in raw_stream:
+            chunk = json.loads(raw_chunk)
+            if 'error' in chunk:
+                raise Exception(
+                    'error while building image: {0}'.format(chunk['error']),
+                    chunk, stream.getvalue(),
+                )
+            else:
+                msg = chunk['stream']
+                self.stdout(msg)
+                stream.write(msg)
+
+        output = stream.getvalue()
+
+        srch = r'Successfully built ([0-9a-f]+)'
+        match = re.search(srch, output)
+        if not match:
+            return None, output
+        return match.group(1), output
 
     @contextmanager
     def _attach(self, container, stdout=None):
