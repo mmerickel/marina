@@ -384,7 +384,7 @@ class DockerBuilder(object):
 #                fp.write(raw)
 
         container = self.client.create_container(
-            self.steps.compiler.base_image,
+            'busybox',
             command='cat "%s"' % self.archive_path,
             user='root',
         )
