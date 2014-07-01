@@ -90,7 +90,7 @@ class BuildSteps(object):
     class RunStep(object):
         def __init__(self, settings):
             self.base_image = settings['base_image']
-            self.override_config = settings.get('config')
+            self.override_config = settings.get('config', {})
 
     def __init__(self, settings):
         tag = settings.get('tag')
@@ -438,29 +438,15 @@ class DockerBuilder(object):
         log.debug('committed runner to image=%s', self.runner_base_image)
 
         # configure the desired image metadata for the runner
-        conf = {}
         base_image_info = self.client.inspect_image(
             self.steps.runner.base_image,
         )
-        base_image_conf = base_image_info['Config']
-        if base_image_info.get('Author'):
-            conf['author'] = base_image_info['Author']
-        conf['command'] = base_image_conf['Cmd'] or []
-        conf['entrypoint'] = base_image_conf['Entrypoint'] or []
-        conf['user'] = base_image_conf['User'] or '0'
-        conf['working_dir'] = base_image_conf['WorkingDir'] or '/'
-        env = {}
-        for entry in base_image_conf['Env']:
-            key, value = entry.split('=', 1)
-            env[key] = value
-        conf['env'] = env
-        conf['volumes'] = [v for v in base_image_conf['Volumes']]
-        conf['ports'] = [p for p in base_image_conf['ExposedPorts']]
-
-        buildfile = self._render_buildfile(
-            self.runner_base_image,
-            **conf
+        runner_conf = self._get_runner_config(
+            base_image_info,
+            self.steps.runner.override_config,
         )
+
+        buildfile = self._render_buildfile(self.runner_base_image, runner_conf)
         log.debug('buildfile: %r', buildfile)
 
         runner_tag = '{0}:{1}'.format(self.steps.name, self.steps.version)
@@ -504,51 +490,73 @@ class DockerBuilder(object):
         log.debug('slug installed into runner container')
         return True
 
-    def _render_buildfile(
-        self,
-        base_image,
-        author=None,
-        command=None,
-        entrypoint=None,
-        ports=None,
-        volumes=None,
-        working_dir=None,
-        user=None,
-        env=None,
-    ):
+    def _get_runner_config(self, base_image_info, overrides):
+        conf = overrides.copy()
+        base_image_conf = base_image_info['Config']
+
+        conf.setdefault('Author', base_image_info['Author'])
+        conf.setdefault('Cmd', base_image_conf['Cmd'] or [])
+        conf.setdefault('Entrypoint', base_image_conf['Entrypoint'] or [])
+        conf.setdefault('User', base_image_conf['User'] or 0)
+        conf.setdefault('WorkingDir', base_image_conf['WorkingDir'] or '/')
+
+        env = conf.setdefault('Env', {})
+        for entry in base_image_conf['Env']:
+            key, value = entry.split('=', 1)
+            env.setdefault(key, value)
+
+        conf['Volumes'] = conf.get('Volumes', []) + [
+            v for v in base_image_conf['Volumes']
+        ]
+
+        conf['ExposedPorts'] = conf.get('ExposedPorts', []) + [
+            p for p in base_image_conf['ExposedPorts']
+        ]
+
+        return conf
+
+    def _render_buildfile(self, base_image, conf):
         """ Convert an image metadata into a file-like object that can be used
         as a Dockerfile in a build context.
 
         """
         opts = ['FROM {0}'.format(self.runner_base_image)]
 
+        author = conf.get('Author')
         if author is not None:
             opts.append('MAINTAINER {0}'.format(author))
 
+        command = conf.get('Cmd')
         if command is not None:
             if isinstance(command, collections.Sequence):
                 command = json.dumps(command)
             opts.append('CMD {0}'.format(command))
 
+        entrypoint = conf.get('Entrypoint')
         if entrypoint is not None:
             if isinstance(entrypoint, collections.Sequence):
                 entrypoint = json.dumps(entrypoint)
             opts.append('ENTRYPOINT {0}'.format(entrypoint))
 
+        ports = conf.get('ExposedPorts')
         if ports is not None:
             for port in ports:
                 opts.append('EXPOSE {0}'.format(port))
 
+        volumes = conf.get('Volumes')
         if volumes is not None:
             for volume in volumes:
                 opts.append('VOLUME {0}'.format(volume))
 
+        working_dir = conf.get('WorkingDir')
         if working_dir is not None:
             opts.append('WORKDIR {0}'.format(working_dir))
 
+        user = conf.get('User')
         if user is not None:
             opts.append('USER {0}'.format(user))
 
+        env = conf.get('Env')
         if env is not None:
             for key, value in env.items():
                 opts.append('ENV {0} {1}'.format(key, value))
