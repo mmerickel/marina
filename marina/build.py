@@ -1,4 +1,5 @@
 from datetime import datetime
+import collections
 from contextlib import contextmanager
 import io
 import json
@@ -438,15 +439,23 @@ class DockerBuilder(object):
 
         # configure the desired image metadata for the runner
         conf = {}
-        base_image_conf = self.client.inspect_image(
+        base_image_info = self.client.inspect_image(
             self.steps.runner.base_image,
         )
-        if base_image_conf.get('Author'):
-            conf['author'] = base_image_conf['Author']
-        conf['command'] = base_image_conf['Config']['Cmd'] or []
-        conf['entrypoint'] = base_image_conf['Config']['Entrypoint'] or []
-        conf['user'] = base_image_conf['Config']['User'] or '0'
-        conf['working_dir'] = base_image_conf['Config']['WorkingDir'] or '/'
+        base_image_conf = base_image_info['Config']
+        if base_image_info.get('Author'):
+            conf['author'] = base_image_info['Author']
+        conf['command'] = base_image_conf['Cmd'] or []
+        conf['entrypoint'] = base_image_conf['Entrypoint'] or []
+        conf['user'] = base_image_conf['User'] or '0'
+        conf['working_dir'] = base_image_conf['WorkingDir'] or '/'
+        env = {}
+        for entry in base_image_conf['Env']:
+            key, value = entry.split('=', 1)
+            env[key] = value
+        conf['env'] = env
+        conf['volumes'] = [v for v in base_image_conf['Volumes']]
+        conf['ports'] = [p for p in base_image_conf['ExposedPorts']]
 
         buildfile = self._render_buildfile(
             self.runner_base_image,
@@ -475,8 +484,8 @@ class DockerBuilder(object):
         base_image = self.steps.runner.base_image
         container = self.client.create_container(
             base_image,
-            entrypoint='',
-            command='tar xzf "%s" -C /' % self.archive_path,
+            entrypoint='tar',
+            command='xzf "%s" -C /' % self.archive_path,
             user='root',
         )
         self.runner_container = container.get('Id')
@@ -517,9 +526,13 @@ class DockerBuilder(object):
             opts.append('MAINTAINER {0}'.format(author))
 
         if command is not None:
+            if isinstance(command, collections.Sequence):
+                command = json.dumps(command)
             opts.append('CMD {0}'.format(command))
 
         if entrypoint is not None:
+            if isinstance(entrypoint, collections.Sequence):
+                entrypoint = json.dumps(entrypoint)
             opts.append('ENTRYPOINT {0}'.format(entrypoint))
 
         if ports is not None:
@@ -537,7 +550,7 @@ class DockerBuilder(object):
             opts.append('USER {0}'.format(user))
 
         if env is not None:
-            for key, value in env:
+            for key, value in env.items():
                 opts.append('ENV {0} {1}'.format(key, value))
 
         return '\n'.join(opts)

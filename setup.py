@@ -22,6 +22,8 @@ setup(
     version='0.1',
     description='marina manages docker instances',
     long_description=README,
+    author='Michael Merickel',
+    author_email='michael@merickel.org',
     classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",
