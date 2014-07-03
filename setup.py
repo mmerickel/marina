@@ -9,7 +9,7 @@ with open(os.path.join(here, 'README.rst')) as fp:
 
 requires = [
     'docker-py',
-    'pyyaml',
+    'PyYAML',
     'setuptools',
     'subparse',
 ]
