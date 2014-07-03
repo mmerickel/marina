@@ -501,17 +501,23 @@ class DockerBuilder(object):
         conf.setdefault('WorkingDir', base_image_conf['WorkingDir'] or '/')
 
         env = conf.setdefault('Env', {})
-        for entry in base_image_conf['Env']:
+        for entry in base_image_conf['Env'] or []:
             key, value = entry.split('=', 1)
             env.setdefault(key, value)
 
-        conf['Volumes'] = conf.get('Volumes', []) + [
-            v for v in base_image_conf['Volumes']
-        ]
+        conf['Volumes'] = (
+            conf.get('Volumes', []) +
+            # base_image_conf['Volumes'] is normally a dict
+            # and we only want the keys
+            [v for v in base_image_conf['Volumes'] or {}]
+        )
 
-        conf['ExposedPorts'] = conf.get('ExposedPorts', []) + [
-            p for p in base_image_conf['ExposedPorts']
-        ]
+        conf['ExposedPorts'] = (
+            conf.get('ExposedPorts', []) +
+            # base_image_conf['ExposedPorts'] is normally a dict
+            # and we only want the keys
+            [p for p in base_image_conf['ExposedPorts'] or {}]
+        )
 
         return conf
 
@@ -523,7 +529,7 @@ class DockerBuilder(object):
         opts = ['FROM {0}'.format(self.runner_base_image)]
 
         author = conf.get('Author')
-        if author is not None:
+        if author:  # avoid an invalid maintainer
             opts.append('MAINTAINER {0}'.format(author))
 
         command = conf.get('Cmd')
@@ -539,12 +545,12 @@ class DockerBuilder(object):
             opts.append('ENTRYPOINT {0}'.format(entrypoint))
 
         ports = conf.get('ExposedPorts')
-        if ports is not None:
+        if ports:  # there is no way to delete ports so ignore None
             for port in ports:
                 opts.append('EXPOSE {0}'.format(port))
 
         volumes = conf.get('Volumes')
-        if volumes is not None:
+        if volumes:  # there is no way to delete volumes so ignore None
             for volume in volumes:
                 opts.append('VOLUME {0}'.format(volume))
 
@@ -557,7 +563,7 @@ class DockerBuilder(object):
             opts.append('USER {0}'.format(user))
 
         env = conf.get('Env')
-        if env is not None:
+        if env:  # there is no way to delete env keys so ignore None
             for key, value in env.items():
                 opts.append('ENV {0} {1}'.format(key, value))
 
