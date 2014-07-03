@@ -1,9 +1,11 @@
+import os
 from setuptools import find_packages
 from setuptools import setup
-import os
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
+
+with open(os.path.join(here, 'README.rst')) as fp:
+    README = fp.read()
 
 requires = [
     'docker-py',
