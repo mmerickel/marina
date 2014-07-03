@@ -22,6 +22,7 @@ setup(
     version='0.0.1',
     description='marina manages docker instances',
     long_description=README,
+    url='https://github.com/mmerickel/marina',
     author='Michael Merickel',
     author_email='michael@merickel.org',
     classifiers=[
@@ -33,7 +34,9 @@ setup(
         "Topic :: System :: Software Distribution",
         "Topic :: System :: Systems Administration",
     ],
+    keywords='docker devops deploy build orchestration',
     packages=find_packages(),
+    include_package_data=True,
     install_requires=requires,
     test_suite='marina.tests',
     entry_points=entry_points,
