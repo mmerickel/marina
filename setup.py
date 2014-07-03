@@ -19,7 +19,7 @@ entry_points = """
 
 setup(
     name='marina',
-    version='0.1',
+    version='0.0.1',
     description='marina manages docker instances',
     long_description=README,
     author='Michael Merickel',
