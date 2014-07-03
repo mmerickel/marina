@@ -6,8 +6,7 @@ compile:
   commands:
     - /bin/bash build.sh
   files:
-    - /srv/venv
-    - /srv/shootout
+    - /app
 
 run:
   base_image: ubuntu:14.04
