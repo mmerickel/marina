@@ -24,6 +24,17 @@ def build(parser):
         ),
     )
     parser.add_argument(
+        '-e', '--env',
+        action='append',
+        default=[],
+        help=(
+            'Add environ variables to the build. These may be accessed in '
+            'the build scripts. Each variable should be of the format '
+            'KEY=VALUE. This may be used to pass in credentials required '
+            'to access private repositories. May be specified more than once.'
+        ),
+    )
+    parser.add_argument(
         '-b', '--build-dir',
         default=os.getcwd(),
         help=(
@@ -122,6 +133,7 @@ def context_factory(cli, args):
 
 class MarinaApp(object):
     stdout = sys.stdout
+    stderr = sys.stderr
 
     def __init__(self, args):
         self.args = args

@@ -35,6 +35,18 @@ def main(cli, args):
     builder.archive_only = args.archive_only
     builder.archive_file = args.archive
 
+    if args.env:
+        env = {}
+        for entry in args.env:
+            parts = entry.split('=', 1)
+            if len(parts) != 2:
+                cli.err('Environment variables must follow the KEY=VALUE '
+                        'format. Invalid entry: "{0}".\n'.format(entry))
+                return 1
+            k, v = parts
+            env[k] = v
+        builder.extra_env = env
+
     if args.use_cache:
         cache_container = '{0}__buildcache'.format(steps.name)
         cache_hostpath = None
@@ -49,7 +61,7 @@ def main(cli, args):
             else:
                 cache_container, cache_volume = parts
             if not posixpath.isabs(cache_volume):
-                cli.err('The cache "path" must be an absolute path.')
+                cli.err('The cache "path" must be an absolute path.\n')
                 return 1
 
         builder.cache_container = cache_container
@@ -217,6 +229,8 @@ class DockerBuilder(object):
     archive_file = None
     archive_only = False
 
+    extra_env = None
+
     @staticmethod
     def stdout(msg):
         sys.stdout.write(msg)
@@ -337,6 +351,8 @@ class DockerBuilder(object):
             'BUILD_VERSION': self.steps.version,
             'BUILD_CACHE': self.cache_volume,
         }
+        if self.extra_env:
+            env.update(self.extra_env)
         for k in sorted(env.keys()):
             log.info('builder env %s = %s', k, env[k])
 
