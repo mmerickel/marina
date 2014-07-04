@@ -329,18 +329,22 @@ class DockerBuilder(object):
             self.steps.name, self.steps.version)
         self.archive_path = posixpath.join(self.dist_volume, self.archive_name)
 
+        env = {
+            'BUILD_ROOT': self.src_volume,
+            'BUILD_CONTEXT': posixpath.join(self.src_volume, 'context'),
+            'BUILD_ARCHIVE_PATH': self.archive_path,
+            'BUILD_NAME': self.steps.name,
+            'BUILD_VERSION': self.steps.version,
+            'BUILD_CACHE': self.cache_volume,
+        }
+        for k in sorted(env.keys()):
+            log.info('builder env %s = %s', k, env[k])
+
         container = self.client.create_container(
             self.steps.compiler.base_image,
             command='/bin/bash build.sh',
             working_dir=self.src_volume,
-            environment={
-                'BUILD_ROOT': self.src_volume,
-                'BUILD_CONTEXT': posixpath.join(self.src_volume, 'context'),
-                'BUILD_ARCHIVE_PATH': self.archive_path,
-                'BUILD_NAME': self.steps.name,
-                'BUILD_VERSION': self.steps.version,
-                'BUILD_CACHE': self.cache_volume,
-            },
+            environment=env,
             volumes=[
                 self.src_volume,
                 self.dist_volume,
