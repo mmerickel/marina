@@ -8,7 +8,7 @@ with open(os.path.join(here, 'README.rst')) as fp:
     README = fp.read()
 
 requires = [
-    'docker-py',
+    'docker-py >= 0.3.2',
     'PyYAML',
     'setuptools',
     'subparse',
