@@ -6,6 +6,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 with open(os.path.join(here, 'README.rst')) as fp:
     README = fp.read()
+with open(os.path.join(here, 'CHANGES.rst')) as fp:
+    CHANGES = fp.read()
 
 requires = [
     'docker-py >= 0.3.2',
@@ -23,7 +25,7 @@ setup(
     name='marina',
     version='0.0.1',
     description='marina manages docker instances',
-    long_description=README,
+    long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',
     author='Michael Merickel',
     author_email='michael@merickel.org',
