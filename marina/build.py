@@ -186,6 +186,7 @@ mkdir -p /root/.ssh
 chmod 700 /root/.ssh
 
 if [ -f ssh_identity ]; then
+    # copy instead of symlink so that we can chmod without issue
     cp ssh_identity /root/.ssh/ssh_identity
     chmod 600 /root/.ssh/ssh_identity
 fi
@@ -195,6 +196,7 @@ cat > /root/.ssh/config << EOF
     IdentityFile /root/.ssh/ssh_identity
 EOF
 
+# ensure we have a cache directory
 if [ ! -d "$BUILD_CACHE" ]; then
     mkdir -p "$BUILD_CACHE"
 fi
