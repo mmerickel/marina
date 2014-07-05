@@ -122,7 +122,8 @@ def generic_options(parser):
     parser.add_argument(
         '-v', '--verbose', action='count', default=0,
         help=(
-            'Increase the verbosity from the default level.'
+            'Increase the verbosity from the default level. May be specified '
+            'more than once to increase the verbosity.'
         ),
     )
 
