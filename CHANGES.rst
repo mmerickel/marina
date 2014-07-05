@@ -1,6 +1,8 @@
 unreleased
 ==========
 
+- Support ``--quiet`` for suppressing output.
+
 - [build] Add ``--env`` option for specifying credentials and other
   configurable build-time settings.
 
