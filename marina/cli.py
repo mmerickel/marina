@@ -126,6 +126,14 @@ def generic_options(parser):
             'more than once to increase the verbosity.'
         ),
     )
+    parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        default=False,
+        help=(
+            'Override any verbosity settings and suppress all output.'
+        ),
+    )
 
 def context_factory(cli, args):
     app = MarinaApp(args)
@@ -140,6 +148,8 @@ class MarinaApp(object):
         self.args = args
 
     def setup_logging(self):
+        if self.args.quiet:
+            logging.disable(logging.CRITICAL)
         if self.args.verbose >= 3:
             level = logging.DEBUG
         elif self.args.verbose == 2:
@@ -154,10 +164,12 @@ class MarinaApp(object):
         )
 
     def err(self, msg):
-        self.stderr.write(msg)
+        if not self.args.quiet:
+            self.stderr.write(msg)
 
     def out(self, msg):
-        self.stdout.write(msg)
+        if not self.args.quiet:
+            self.stdout.write(msg)
 
     def docker_client(self):
         host = os.environ.get('DOCKER_HOST')
