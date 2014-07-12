@@ -1,5 +1,5 @@
-unreleased
-==========
+0.0.2 (2014-07-12)
+==================
 
 - Support ``--quiet`` for suppressing output.
 

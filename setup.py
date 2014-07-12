@@ -48,14 +48,14 @@ class PyTest(TestCommand):
 
 setup(
     name='marina',
-    version='0.0.1',
+    version='0.0.2',
     description='marina manages docker instances',
     long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',
     author='Michael Merickel',
     author_email='michael@merickel.org',
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Programming Language :: Python",
@@ -64,7 +64,7 @@ setup(
         "Topic :: System :: Systems Administration",
     ],
     keywords='docker devops deploy build orchestration',
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     include_package_data=True,
     install_requires=requires,
     tests_require=tests_require,
