@@ -247,6 +247,8 @@ class DockerBuilder(object):
     def run(self):
         self._setup()
         try:
+            if not self._get_image('busybox'):
+                return
             if not self._create_cache():
                 return
             if not self._build_source_container():
@@ -337,6 +339,27 @@ class DockerBuilder(object):
             self.client.start(self.cache_container)
         else:
             log.info('found cache container=%s', self.cache_container)
+        return True
+
+    def _get_image(self, name):
+        log.debug('checking for image=%s', name)
+        do_pull_image = False
+        try:
+            self.client.inspect_image(name)
+        except docker.errors.APIError as ex:
+            if ex.is_client_error():
+                do_pull_image = True
+                log.debug('could not find image=%s', name)
+            else:
+                raise
+
+        if do_pull_image:
+            log.info('pulling image=%s', name)
+            stream = self.client.pull(name, stream=True)
+            for chunk in stream:
+                self.stdout(chunk)
+        else:
+            log.info('found image=%s', name)
         return True
 
     def _build_source_container(self):
