@@ -3,6 +3,7 @@ import os
 import sys
 
 import docker
+import docker.utils
 import pkg_resources
 from subparse import CLI
 from subparse import command
@@ -171,11 +172,17 @@ class MarinaApp(object):
         if not self.args.quiet:
             self.stdout.write(msg)
 
+    _docker_kw = None
+
     def docker_client(self):
-        host = os.environ.get('DOCKER_HOST')
-        if host is not None:
-            log.debug('found DOCKER_HOST environment variable, using')
-        return docker.Client(host)
+        if self._docker_kw is None:
+            self._docker_kw = docker.utils.kwargs_from_env()
+        kw = self._docker_kw
+        if kw:
+            log.debug('found docker parameters:')
+            for k in sorted(kw.keys()):
+                log.debug('env %s = %s', k, kw[k])
+        return docker.Client(**kw)
 
 def main(argv=None):
     cli = CLI(
