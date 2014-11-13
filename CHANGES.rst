@@ -1,3 +1,8 @@
+Unreleased
+==========
+
+- Support docker 1.3.0 and its TLS requirements.
+
 0.0.2 (2014-07-12)
 ==================
 
