@@ -176,12 +176,16 @@ class MarinaApp(object):
 
     def docker_client(self):
         if self._docker_kw is None:
-            self._docker_kw = docker.utils.kwargs_from_env()
-        kw = self._docker_kw
-        if kw:
-            log.debug('found docker parameters:')
-            for k in sorted(kw.keys()):
-                log.debug('env %s = %s', k, kw[k])
+            kw = self._docker_kw = docker.utils.kwargs_from_env()
+            if self._docker_kw:
+                log.debug('found docker parameters:')
+                for k in sorted(kw.keys()):
+                    log.debug('env %s = %s', k, kw[k])
+            else:
+                log.debug('using default docker config, '
+                          'no environ settings found')
+        else:
+            kw = self._docker_kw
         return docker.Client(**kw)
 
 def main(argv=None):
