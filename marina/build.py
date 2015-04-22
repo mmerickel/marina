@@ -34,6 +34,7 @@ def main(cli, args):
     builder.stdout = cli.out
     builder.archive_only = args.archive_only
     builder.archive_file = args.archive
+    builder.skip_cleanup = args.skip_cleanup
 
     if args.env:
         env = {}
@@ -233,6 +234,8 @@ class DockerBuilder(object):
 
     extra_env = None
 
+    skip_cleanup = False
+
     @staticmethod
     def stdout(msg):
         sys.stdout.write(msg)
@@ -278,19 +281,20 @@ class DockerBuilder(object):
         self.client = self.connector()
 
     def _teardown(self):
-        if self.source_container:
+        if self.source_container and not self.skip_cleanup:
             self._remove_container(self.source_container)
 
-        if self.runner_container:
+        if self.runner_container and not self.skip_cleanup:
             self._remove_container(self.runner_container)
 
-        if self.runner_base_image:
+        if self.runner_base_image and not self.skip_cleanup:
             self._remove_image(self.runner_base_image)
 
-        try:
-            shutil.rmtree(self.build_dir)
-        except IOError:
-            log.exception('failed to remove build directory')
+        if not self.skip_cleanup:
+            try:
+                shutil.rmtree(self.build_dir)
+            except IOError:
+                log.exception('failed to remove build directory')
 
         self.client = None
 

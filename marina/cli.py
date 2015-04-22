@@ -113,6 +113,14 @@ def build(parser):
         ),
     )
     parser.add_argument(
+        '--skip-cleanup',
+        action='store_true',
+        default=False,
+        help=(
+            'Skip removal of images and containers.'
+        ),
+    )
+    parser.add_argument(
         'app',
         help=(
             'Path to an application folder with a meta.yml file'
