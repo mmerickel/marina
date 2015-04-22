@@ -674,11 +674,15 @@ class DockerBuilder(object):
             signal.release()
 
             try:
+                num_bytes = 0
                 for chunk in stream:
+                    num_bytes += len(chunk)
                     stdout(chunk)
 
                     if should_stop:
                         break
+                log.debug('read %d bytes from container=%s',
+                          num_bytes, container)
             except:
                 log.debug('exception caught while reading from container=%s',
                           container, exc_info=True)
@@ -698,9 +702,13 @@ class DockerBuilder(object):
         # it'd be nice to cleanup if there's an exception but currently
         # the stream has no way to specify a timeout so we just daemonize
         # the thread and let it hang until the process dies
-        yield
-        should_stop = True
-        th.join()
+        try:
+            yield
+            th.join()
+        except:
+            should_stop = True
+            log.debug('detaching early from container=%s', container)
+            raise
 
 def get_default_ssh_searchpaths():
     for searchpath in (
