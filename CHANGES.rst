@@ -1,6 +1,9 @@
 unreleased
 ==========
 
+- [build] Avoid detaching from the archive container before the tarfile
+  has been fully written to disk.
+
 - [build] Add ``--skip-cleanup`` option for keeping images/containers/files
   around after the build.
 
