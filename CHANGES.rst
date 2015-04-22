@@ -1,3 +1,9 @@
+unreleased
+==========
+
+- [build] Add ``--skip-cleanup`` option for keeping images/containers/files
+  around after the build.
+
 0.0.3 (2014-11-19)
 ==================
 
