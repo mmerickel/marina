@@ -186,6 +186,9 @@ class MarinaApp(object):
         if self._docker_kw is None:
             kw = self._docker_kw = docker.utils.kwargs_from_env()
             if self._docker_kw:
+                # disable hostname verification until
+                # https://github.com/docker/docker-py/issues/731 is resolved
+                kw['tls'].assert_hostname = False
                 log.debug('found docker parameters:')
                 for k in sorted(kw.keys()):
                     log.debug('env %s = %s', k, kw[k])
