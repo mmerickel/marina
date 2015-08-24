@@ -1,6 +1,10 @@
 unreleased
 ==========
 
+- Turn off docker hostname verification to enable connections with
+  docker-machine instances over SSL until
+  https://github.com/docker/docker-py/issues/731 is resolved.
+
 - [build] Avoid detaching from the archive container before the tarfile
   has been fully written to disk.
 
