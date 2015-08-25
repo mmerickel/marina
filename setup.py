@@ -48,7 +48,7 @@ class PyTest(TestCommand):
 
 setup(
     name='marina',
-    version='0.0.4',
+    version='0.0.5',
     description='marina manages docker instances',
     long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',

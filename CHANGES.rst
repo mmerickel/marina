@@ -1,5 +1,5 @@
-unreleased
-==========
+0.0.5 (2015-08-25)
+==================
 
 - [build] Exit with an error code upon failure instead of 0.
 
