@@ -1,6 +1,11 @@
 unreleased
 ==========
 
+- [build] Exit with an error code upon failure instead of 0.
+
+0.0.4 (2015-08-24)
+==================
+
 - Turn off docker hostname verification to enable connections with
   docker-machine instances over SSL until
   https://github.com/docker/docker-py/issues/731 is resolved.
