@@ -74,7 +74,14 @@ def main(cli, args):
         builder.cache_hostpath = None
         builder.cache_volume = None
         builder.rebuild_cache = False
-    builder.run()
+
+    try:
+        builder.run()
+    except Exception as ex:
+        log.debug('caught build exception', excinfo=1)
+        log.error(ex.message)
+        return -1
+    return 0
 
 def parse_build_steps(data):
     settings = yaml.load(data)
@@ -251,21 +258,19 @@ class DockerBuilder(object):
         self._setup()
         try:
             if not self._get_image('busybox'):
-                return
+                raise RuntimeError('failed to download busybox image')
             if not self._create_cache():
-                return
+                raise RuntimeError('failed to construct data cache')
             if not self._build_source_container():
-                return
+                raise RuntimeError('failed to build source container')
             if self.archive_file and not self._build_archive():
-                return
+                raise RuntimeError('failed to build archive')
             if self.archive_only:
                 return
             if not self._build_runner_image():
-                return
+                raise RuntimeError('failed to build runner image')
         finally:
             self._teardown()
-
-        return True
 
     def _setup(self):
         self.build_dir = tempfile.mkdtemp(dir=self.steps.root_path)
