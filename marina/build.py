@@ -78,7 +78,7 @@ def main(cli, args):
     try:
         builder.run()
     except Exception as ex:
-        log.debug('caught build exception', excinfo=1)
+        log.debug('caught build exception', exc_info=1)
         log.error(ex.message)
         return -1
     return 0
