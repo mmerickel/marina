@@ -309,7 +309,7 @@ class DockerBuilder(object):
         except:
             log.exception('failed to stop container=%s', container)
         try:
-            self.client.remove_container(container)
+            self.client.remove_container(container, v=True)
         except:
             log.exception('failed to remove container=%s', container)
 
