@@ -566,12 +566,9 @@ class DockerBuilder(object):
             [v for v in base_image_conf['Volumes'] or {}]
         )
 
-        conf['ExposedPorts'] = (
-            conf.get('ExposedPorts', []) +
-            # base_image_conf['ExposedPorts'] is normally a dict
-            # and we only want the keys
-            [p for p in base_image_conf['ExposedPorts'] or {}]
-        )
+        ports = conf.get('ExposedPorts', {})
+        ports.update(base_image_conf.get('ExposedPorts') or {})
+        conf['ExposedPorts'] = ports
 
         return conf
 
