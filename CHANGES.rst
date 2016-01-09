@@ -1,3 +1,9 @@
+0.0.6 (2016-01-08)
+==================
+
+- [build] Delete any volumes associated with a container.
+- [build] Fix usage of ExposedPorts from runner base image.
+
 0.0.5 (2015-08-25)
 ==================
 
