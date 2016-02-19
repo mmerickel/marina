@@ -179,6 +179,7 @@ class MarinaApp(object):
     def out(self, msg):
         if not self.args.quiet:
             self.stdout.write(msg)
+            self.stdout.flush()
 
     _docker_kw = None
 
