@@ -1,3 +1,8 @@
+0.0.7 (2016-02-18)
+==================
+
+- [build] Flush stdout to keep container messages from pausing.
+
 0.0.6 (2016-01-08)
 ==================
 
