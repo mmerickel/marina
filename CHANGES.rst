@@ -1,3 +1,6 @@
+- [build] Allow the BUILD_CONTEXT (cwd in scripts) to be writeable.
+  Previously it was mounted readonly.
+
 0.0.7 (2016-02-18)
 ==================
 
