@@ -190,18 +190,20 @@ class BuildScript(object):
 
 set -eo pipefail
 
-mkdir -p /root/.ssh
-chmod 700 /root/.ssh
+SSH_CONFIG_DIR="$HOME/.ssh"
+
+mkdir -p "$SSH_CONFIG_DIR"
+chmod 700 "$SSH_CONFIG_DIR"
 
 if [ -f ssh_identity ]; then
     # copy instead of symlink so that we can chmod without issue
-    cp ssh_identity /root/.ssh/ssh_identity
-    chmod 600 /root/.ssh/ssh_identity
+    cp ssh_identity "$SSH_CONFIG_DIR/ssh_identity"
+    chmod 600 "$SSH_CONFIG_DIR/ssh_identity"
 fi
 
-cat > /root/.ssh/config << EOF
+cat > "$SSH_CONFIG_DIR/config" << EOF
     StrictHostKeyChecking no
-    IdentityFile /root/.ssh/ssh_identity
+    IdentityFile "$SSH_CONFIG_DIR/ssh_identity"
 EOF
 
 # ensure we have a cache directory
@@ -215,7 +217,7 @@ fi
 # in order to assist in proper debugging
 set -e
 
-cd context
+cd "$BUILD_CONTEXT"
 
 # user-defined commands below ####################
 '''
