@@ -412,7 +412,7 @@ class DockerBuilder(object):
 
         binds[self.build_dir] = {
             'bind': self.src_volume,
-            'ro': True,
+            'ro': False,
         }
         if self.cache_hostpath:
             binds[self.cache_hostpath] = {
