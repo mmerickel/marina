@@ -26,6 +26,9 @@ def main(cli, args):
     steps.root_path = args.build_dir
     steps.context_path = context_path
     steps.identity_file = args.identity_file
+    if not steps.identity_file:
+        log.info('searching for ssh identity in default locations')
+        steps.identity_file = find_default_identity_file()
     if args.tag:
         log.info('overriding version tag=%s', args.tag)
         steps.version = args.tag
@@ -230,8 +233,8 @@ class DockerBuilder(object):
     """ Execute a build on a docker client."""
     build = None
 
-    src_volume = '/builder/src'
-    dist_volume = '/builder/dist'
+    src_volume = '/marina/src'
+    dist_volume = '/marina/dist'
 
     cache_container = None
     cache_hostpath = None
@@ -728,7 +731,7 @@ def find_default_identity_file(searchpath=None):
             if path:
                 return path
     else:
-        for fname in ('id_rsa', 'id_dsa'):
+        for fname in ('ssh_identity', 'id_rsa', 'id_dsa'):
             path = os.path.join(searchpath, fname)
             if os.path.exists(path):
                 return path

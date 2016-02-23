@@ -1,6 +1,8 @@
 - [build] Allow the BUILD_CONTEXT (cwd in scripts) to be writeable.
   Previously it was mounted readonly.
 
+- [build] Search for the ssh identity file in known paths.
+
 0.0.7 (2016-02-18)
 ==================
 
