@@ -188,8 +188,6 @@ class BuildScript(object):
             ))
 
     setup_script = '''\
-#!/bin/bash
-
 set -eo pipefail
 
 SSH_CONFIG_DIR="$HOME/.ssh"
@@ -205,6 +203,7 @@ fi
 
 cat > "$SSH_CONFIG_DIR/config" << EOF
     StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
     IdentityFile "$SSH_CONFIG_DIR/ssh_identity"
 EOF
 
