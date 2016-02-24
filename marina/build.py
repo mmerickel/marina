@@ -44,9 +44,9 @@ def main(cli, args):
         for entry in args.env:
             parts = entry.split('=', 1)
             if len(parts) != 2:
-                cli.err('Environment variables must follow the KEY=VALUE '
-                        'format. Invalid entry: "{0}".\n'.format(entry))
-                return 1
+                cli.abort(
+                    'Environment variables must follow the KEY=VALUE '
+                    'format. Invalid entry: "{0}".'.format(entry))
             k, v = parts
             env[k] = v
         builder.extra_env = env
@@ -65,8 +65,7 @@ def main(cli, args):
             else:
                 cache_container, cache_volume = parts
             if not posixpath.isabs(cache_volume):
-                cli.err('The cache "path" must be an absolute path.\n')
-                return 1
+                cli.abort('The cache "path" must be an absolute path.')
 
         builder.cache_container = cache_container
         builder.cache_hostpath = cache_hostpath

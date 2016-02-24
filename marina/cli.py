@@ -144,6 +144,11 @@ def generic_options(parser):
         ),
     )
 
+class AbortCLI(Exception):
+    def __init__(self, msg, status):
+        Exception.__init__(msg)
+        self.status = status
+
 def context_factory(cli, args):
     app = MarinaApp(args)
     app.setup_logging()
@@ -172,9 +177,14 @@ class MarinaApp(object):
             format='%(asctime)s %(levelname)s %(name)s %(message)s',
         )
 
-    def err(self, msg):
-        if not self.args.quiet:
-            self.stderr.write(msg)
+    def abort(self, msg, status=1):
+        self.err(msg)
+        raise AbortCLI(msg, status)
+
+    def error(self, msg):
+        self.stderr.write(msg)
+        if not msg.endswith('\n'):
+            self.stderr.write('\n')
 
     def out(self, msg):
         if not self.args.quiet:
@@ -206,7 +216,10 @@ def main(argv=None):
     )
     cli.add_generic_options(generic_options)
     cli.load_commands(__name__)
-    return cli.run(argv)
+    try:
+        return cli.run(argv)
+    except AbortCLI as ex:
+        return ex.status
 
 if __name__ == '__main__':
     import sys
