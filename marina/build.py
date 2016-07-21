@@ -467,7 +467,11 @@ class DockerBuilder(object):
 
         try:
             with io.open(self.archive_file, 'wb') as fp:
-                with self._attach(self.archive_container, stdout=fp.write):
+                with self._attach(
+                    self.archive_container,
+                    stdout=fp.write,
+                    encoding=None,
+                ):
                     log.debug('starting container=%s', self.archive_container)
                     self.client.start(self.archive_container)
                     log.debug('started container=%s', self.archive_container)
@@ -529,17 +533,19 @@ class DockerBuilder(object):
 
     def _build_runner_container(self):
         base_image = self.steps.runner.base_image
+
+        host_config = self.client.create_host_config(
+            volumes_from=self.source_container,
+        )
+
         container = self.client.create_container(
             base_image,
             entrypoint='tar',
             command='xzf "%s" -C /' % self.archive_path,
             user='root',
+            host_config=host_config,
         )
         self.runner_container = container.get('Id')
-
-        host_config = self.client.create_host_config(
-            volumes_from=self.source_container,
-        )
 
         with self._attach(self.runner_container):
             log.debug('starting container=%s', self.runner_container)
@@ -658,7 +664,7 @@ class DockerBuilder(object):
         return match.group(1), output
 
     @contextmanager
-    def _attach(self, container, stdout=None):
+    def _attach(self, container, stdout=None, encoding='utf8'):
         client = self.connector()
         if stdout is None:
             stdout = self.stdout
@@ -687,7 +693,9 @@ class DockerBuilder(object):
                 num_bytes = 0
                 for chunk in stream:
                     num_bytes += len(chunk)
-                    stdout(chunk.decode('utf8'))
+                    if encoding:
+                        chunk = chunk.decode(encoding)
+                    stdout(chunk)
 
                     if should_stop:
                         break
