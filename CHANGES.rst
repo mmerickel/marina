@@ -1,7 +1,11 @@
+- Support Python 3.
+
 - [build] Allow the BUILD_CONTEXT (cwd in scripts) to be writeable.
   Previously it was mounted readonly.
 
 - [build] Search for the ssh identity file in known paths.
+
+- [build] Support Docker 1.12.
 
 0.0.7 (2016-02-18)
 ==================
