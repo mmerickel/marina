@@ -81,7 +81,7 @@ def main(cli, args):
         builder.run()
     except Exception as ex:
         log.debug('caught build exception', exc_info=1)
-        log.error(ex.message)
+        log.error(ex.args[0])
         return -1
     return 0
 
@@ -150,7 +150,7 @@ class BuildSteps(object):
         script.add_archive_patterns(self.compiler.files)
 
         script_path = os.path.join(dir, 'build.sh')
-        with io.open(script_path, 'wb') as fp:
+        with io.open(script_path, 'w') as fp:
             script.save(fp)
 
 class BuildScript(object):
@@ -393,20 +393,6 @@ class DockerBuilder(object):
         for k in sorted(env.keys()):
             log.info('builder env %s = %s', k, env[k])
 
-        container = self.client.create_container(
-            self.steps.compiler.base_image,
-            command='/bin/bash build.sh',
-            working_dir=self.src_volume,
-            environment=env,
-            volumes=[
-                self.src_volume,
-                self.dist_volume,
-            ],
-            user='root',
-        )
-        self.source_container = container.get('Id')
-        log.info('created source container=%s', self.source_container)
-
         volumes_from, binds = [], {}
         if self.cache_container:
             volumes_from.append(self.cache_container)
@@ -421,13 +407,29 @@ class DockerBuilder(object):
                 'rw': True,
             }
 
+        host_config = self.client.create_host_config(
+            volumes_from=volumes_from,
+            binds=binds,
+        )
+
+        container = self.client.create_container(
+            self.steps.compiler.base_image,
+            command='/bin/bash build.sh',
+            working_dir=self.src_volume,
+            environment=env,
+            volumes=[
+                self.src_volume,
+                self.dist_volume,
+            ],
+            user='root',
+            host_config=host_config,
+        )
+        self.source_container = container.get('Id')
+        log.info('created source container=%s', self.source_container)
+
         with self._attach(self.source_container):
             log.debug('starting container=%s', self.source_container)
-            self.client.start(
-                self.source_container,
-                volumes_from=volumes_from,
-                binds=binds,
-            )
+            self.client.start(self.source_container)
             log.debug('started container=%s', self.source_container)
             ret = self.client.wait(self.source_container)
         if ret != 0:
@@ -682,7 +684,7 @@ class DockerBuilder(object):
                 num_bytes = 0
                 for chunk in stream:
                     num_bytes += len(chunk)
-                    stdout(chunk)
+                    stdout(chunk.decode('utf8'))
 
                     if should_stop:
                         break
