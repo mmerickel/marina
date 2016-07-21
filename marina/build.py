@@ -453,10 +453,15 @@ class DockerBuilder(object):
 #            for line in raw:
 #                fp.write(raw)
 
+        host_config = self.client.create_host_config(
+            volumes_from=self.source_container,
+        )
+
         container = self.client.create_container(
             'busybox',
             command='cat "%s"' % self.archive_path,
             user='root',
+            host_config=host_config,
         )
         self.archive_container = container.get('Id')
 
@@ -464,10 +469,7 @@ class DockerBuilder(object):
             with io.open(self.archive_file, 'wb') as fp:
                 with self._attach(self.archive_container, stdout=fp.write):
                     log.debug('starting container=%s', self.archive_container)
-                    self.client.start(
-                        self.archive_container,
-                        volumes_from=self.source_container,
-                    )
+                    self.client.start(self.archive_container)
                     log.debug('started container=%s', self.archive_container)
                     ret = self.client.wait(self.archive_container)
         finally:
@@ -535,12 +537,13 @@ class DockerBuilder(object):
         )
         self.runner_container = container.get('Id')
 
+        host_config = self.client.create_host_config(
+            volumes_from=self.source_container,
+        )
+
         with self._attach(self.runner_container):
             log.debug('starting container=%s', self.runner_container)
-            self.client.start(
-                self.runner_container,
-                volumes_from=self.source_container,
-            )
+            self.client.start(self.runner_container)
             log.debug('started container=%s', self.runner_container)
             ret = self.client.wait(self.runner_container)
         if ret != 0:
