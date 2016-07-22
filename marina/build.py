@@ -640,11 +640,21 @@ class DockerBuilder(object):
 
         """
         kw['stream'] = True
+        kw['decode'] = False
         raw_stream = self.client.build(**kw)
 
+        def decode_chunks(stream):
+            # workaround for https://github.com/docker/docker-py/issues/1134
+            # docker returns more than one JSON in a single response
+            for raw_response in stream:
+                response = raw_response.decode('utf8')
+                raw_chunks = response.strip().split('\r\n')
+                for raw_chunk in raw_chunks:
+                    chunk = json.loads(raw_chunk)
+                    yield chunk
+
         stream = io.StringIO()
-        for raw_chunk in raw_stream:
-            chunk = json.loads(raw_chunk)
+        for chunk in decode_chunks(raw_stream):
             if 'error' in chunk:
                 raise Exception(
                     'error while building image: {0}'.format(chunk['error']),
