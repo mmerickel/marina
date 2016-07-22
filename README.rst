@@ -5,6 +5,13 @@ Marina is a tool for building docker images with a focus on separating
 compile-time dependencies from run-time dependencies in order to keep
 the shipped images small and secure.
 
+Installation
+------------
+
+::
+
+  pip install marina
+
 Usage
 -----
 
@@ -28,3 +35,11 @@ App Config
 
   run:
     base_image: ubuntu:14.04
+
+Running Tests
+-------------
+
+::
+
+  pip install marina[testing]
+  py.test
