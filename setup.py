@@ -28,7 +28,7 @@ entry_points = """
 
 setup(
     name='marina',
-    version='0.0.7',
+    version='0.0.8',
     description='marina manages docker instances',
     long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',
