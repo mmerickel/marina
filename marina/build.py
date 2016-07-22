@@ -641,6 +641,7 @@ class DockerBuilder(object):
         """
         kw['stream'] = True
         kw['decode'] = False
+        kw['rm'] = True
         raw_stream = self.client.build(**kw)
 
         def decode_chunks(stream):
