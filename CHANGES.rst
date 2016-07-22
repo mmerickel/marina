@@ -1,11 +1,14 @@
 - Support Python 3.
 
+- [build] Stop using an API that was removed in docker 1.12.
+
 - [build] Allow the BUILD_CONTEXT (cwd in scripts) to be writeable.
   Previously it was mounted readonly.
 
 - [build] Search for the ssh identity file in known paths.
 
-- [build] Support Docker 1.12.
+- [build] Add a workaround for a bug in docker-py causing the runner image
+  to fail to build. See https://github.com/docker/docker-py/issues/1134
 
 0.0.7 (2016-02-18)
 ==================
