@@ -1,3 +1,6 @@
+0.0.9 (2016-07-25)
+==================
+
 - [build] Add another workaround for docker-py when pulling a new image.
   See https://github.com/docker/docker-py/issues/1134
 
