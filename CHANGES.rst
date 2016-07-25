@@ -1,3 +1,9 @@
+- [build] Add another workaround for docker-py when pulling a new image.
+  See https://github.com/docker/docker-py/issues/1134
+
+0.0.8 (2016-07-22)
+==================
+
 - Support Python 3.
 
 - [build] Stop using an API that was removed in docker 1.12.

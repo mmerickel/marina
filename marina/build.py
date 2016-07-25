@@ -368,7 +368,7 @@ class DockerBuilder(object):
         if do_pull_image:
             log.info('pulling image=%s', name)
             stream = self.client.pull(name, stream=True)
-            for chunk in stream:
+            for chunk in decode_chunks(stream):
                 self.stdout(chunk)
         else:
             log.info('found image=%s', name)
@@ -644,16 +644,6 @@ class DockerBuilder(object):
         kw['rm'] = True
         raw_stream = self.client.build(**kw)
 
-        def decode_chunks(stream):
-            # workaround for https://github.com/docker/docker-py/issues/1134
-            # docker returns more than one JSON in a single response
-            for raw_response in stream:
-                response = raw_response.decode('utf8')
-                raw_chunks = response.strip().split('\r\n')
-                for raw_chunk in raw_chunks:
-                    chunk = json.loads(raw_chunk)
-                    yield chunk
-
         stream = io.StringIO()
         for chunk in decode_chunks(raw_stream):
             if 'error' in chunk:
@@ -738,6 +728,16 @@ class DockerBuilder(object):
             should_stop = True
             log.debug('detaching early from container=%s', container)
             raise
+
+def decode_chunks(stream):
+    # workaround for https://github.com/docker/docker-py/issues/1134
+    # docker returns more than one JSON in a single response
+    for raw_response in stream:
+        response = raw_response.decode('utf8')
+        raw_chunks = response.strip().split('\r\n')
+        for raw_chunk in raw_chunks:
+            chunk = json.loads(raw_chunk)
+            yield chunk
 
 def get_default_ssh_searchpaths():
     for searchpath in (
