@@ -171,23 +171,23 @@ class BuildScript(object):
         fp.write(self.setup_script)
 
         if self.rebuild_cache:
-            fp.write('find "$BUILD_CACHE" -mindepth 1 -delete\n')
+            fp.write(u'find "$BUILD_CACHE" -mindepth 1 -delete\n')
 
         fp.write(self.command_prefix_script)
 
         for command in self.commands:
-            fp.write('%s\n' % command)
+            fp.write(u'%s\n' % command)
 
         if self.archive_patterns:
             fp.write(self.archive_prefix_script)
-            fp.write('tar czf "$BUILD_ARCHIVE_PATH" --posix %s\n' % (
+            fp.write(u'tar czf "$BUILD_ARCHIVE_PATH" --posix %s\n' % (
                 ' '.join(
-                    '"%s"' % pattern
+                    u'"%s"' % pattern
                     for pattern in self.archive_patterns
                 )
             ))
 
-    setup_script = '''\
+    setup_script = u'''\
 set -eo pipefail
 
 SSH_CONFIG_DIR="$HOME/.ssh"
@@ -213,7 +213,7 @@ if [ ! -d "$BUILD_CACHE" ]; then
 fi
 '''
 
-    command_prefix_script = '''
+    command_prefix_script = u'''
 # be sure to fail if any of the below commands fail,
 # in order to assist in proper debugging
 set -e
@@ -223,7 +223,7 @@ cd "$BUILD_CONTEXT"
 # user-defined commands below ####################
 '''
 
-    archive_prefix_script = '''
+    archive_prefix_script = u'''
 # generate a binary archive
 '''
 
