@@ -1,3 +1,8 @@
+0.1.0 (2016-09-14)
+==================
+
+- [build] Fix some unicode issues when running on Python 2.
+
 0.0.9 (2016-07-25)
 ==================
 
