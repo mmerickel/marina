@@ -1,3 +1,9 @@
+0.1.1 (2016-10-07)
+==================
+
+- [build] Fix an issue when the system does not already have the busybox
+  image installed.
+
 0.1.0 (2016-09-14)
 ==================
 
