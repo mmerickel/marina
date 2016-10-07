@@ -367,9 +367,9 @@ class DockerBuilder(object):
 
         if do_pull_image:
             log.info('pulling image=%s', name)
-            stream = self.client.pull(name, stream=True)
-            for chunk in decode_chunks(stream):
-                self.stdout(chunk)
+            raw_stream = self.client.pull(name, stream=True)
+            for chunk in decode_chunks(raw_stream):
+                self.stdout(chunk['status'] + '\n')
         else:
             log.info('found image=%s', name)
         return True
