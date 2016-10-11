@@ -3,6 +3,8 @@
 set -eo pipefail
 set -x
 
+# ideally do this in the base image instead of on every build
+apt-get update
 apt-get -y -q install python-dev python-setuptools python-virtualenv git-core
 
 APP_ROOT=/app
@@ -17,6 +19,8 @@ else
     virtualenv .
 fi
 
-bin/python setup.py develop
+export PIP_CACHE_DIR="$BUILD_CACHE/pip"
+
+bin/pip install -e .
 
 rsync -az "$APP_ROOT/" "$BUILD_CACHE/app"
