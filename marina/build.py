@@ -262,8 +262,6 @@ class DockerBuilder(object):
     def run(self):
         self._setup()
         try:
-            if not self._get_image('busybox'):
-                raise RuntimeError('failed to download busybox image')
             if not self._create_cache():
                 raise RuntimeError('failed to construct data cache')
             if not self._build_source_container():
@@ -344,27 +342,6 @@ class DockerBuilder(object):
             self.client.create_volume(self.cache_volume)
         else:
             log.info('found cache volume=%s', self.cache_volume)
-        return True
-
-    def _get_image(self, name):
-        log.debug('checking for image=%s', name)
-        do_pull_image = False
-        try:
-            self.client.inspect_image(name)
-        except docker.errors.APIError as ex:
-            if ex.is_client_error():
-                do_pull_image = True
-                log.debug('could not find image=%s', name)
-            else:
-                raise
-
-        if do_pull_image:
-            log.info('pulling image=%s', name)
-            raw_stream = self.client.pull(name, stream=True)
-            for chunk in decode_chunks(raw_stream):
-                self.stdout(chunk['status'] + '\n')
-        else:
-            log.info('found image=%s', name)
         return True
 
     def _build_source_container(self):
@@ -448,7 +425,7 @@ class DockerBuilder(object):
         )
 
         container = self.client.create_container(
-            'busybox',
+            self.steps.compiler.base_image,
             command='cat "%s"' % self.archive_path,
             user='root',
             host_config=host_config,

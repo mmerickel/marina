@@ -7,6 +7,9 @@ unreleased
 - [build] Properly exit with an error if there was an issue reading
   from the container stdout/stderr while attached.
 
+- [build] The ``busybox`` image is no longer required. The archive will
+  be pulled directly from the build container.
+
 0.1.1 (2016-10-07)
 ==================
 
