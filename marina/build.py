@@ -408,18 +408,10 @@ class DockerBuilder(object):
     def _build_archive(self):
         log.info('archiving build products')
 
-        # "docker cp" as of 0.9.1 does not support copying from volumes
-        # so we need to use the workaround of creating a new container
-        # that dumps the contents to stdout
-#        raw = self.client.copy(self.source_container, self.archive_path)
-#        if not raw:
-#            log.error('archive did not finish successfully, status=%s', ret)
-#            return False
-#
-#        with io.open(self.archive_file, 'wb') as fp:
-#            for line in raw:
-#                fp.write(raw)
-
+        # docker api 1.20 introduces the archive concept but it returns a
+        # tarball containing a single file. This requires a double copy to
+        # get the data from the container. The below method only requires a
+        # single copy.
         host_config = self.client.create_host_config(
             volumes_from=self.source_container,
         )
