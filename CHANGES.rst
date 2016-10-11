@@ -1,5 +1,5 @@
-unreleased
-==========
+0.2.0 (2016-10-11)
+==================
 
 - Pin to ``docker-py < 1.10`` until a bug is fixed.
   See https://github.com/docker/docker-py/issues/1211
