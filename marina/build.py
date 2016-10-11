@@ -52,29 +52,29 @@ def main(cli, args):
         builder.extra_env = env
 
     if args.use_cache:
-        cache_container = '{0}__buildcache'.format(steps.name)
+        cache_volume = '{0}__buildcache'.format(steps.name)
         cache_hostpath = None
-        cache_volume = '/tmp/cache'
+        cache_path = '/tmp/cache'
         if args.cache:
             parts = args.cache.split(':', 1)
-            if len(parts) != 2:
-                if posixpath.isabs(parts[0]):
-                    cache_hostpath = parts[0]
-                else:
-                    cache_container = parts[0]
+            if posixpath.isabs(parts[0]):
+                cache_hostpath = parts[0]
+                cache_volume = None
             else:
-                cache_container, cache_volume = parts
-            if not posixpath.isabs(cache_volume):
+                cache_volume = parts[0]
+            if len(parts) == 2:
+                cache_path = parts[1]
+            if not posixpath.isabs(cache_path):
                 cli.abort('The cache "path" must be an absolute path.')
 
-        builder.cache_container = cache_container
-        builder.cache_hostpath = cache_hostpath
         builder.cache_volume = cache_volume
+        builder.cache_hostpath = cache_hostpath
+        builder.cache_path = cache_path
         builder.rebuild_cache = args.rebuild_cache
     else:
-        builder.cache_container = None
-        builder.cache_hostpath = None
         builder.cache_volume = None
+        builder.cache_hostpath = None
+        builder.cache_path = None
         builder.rebuild_cache = False
 
     try:
@@ -234,9 +234,9 @@ class DockerBuilder(object):
     src_volume = '/marina/src'
     dist_volume = '/marina/dist'
 
-    cache_container = None
-    cache_hostpath = None
     cache_volume = None
+    cache_hostpath = None
+    cache_path = None
     rebuild_cache = False
 
     archive_file = None
@@ -323,34 +323,25 @@ class DockerBuilder(object):
             log.exception('failed to remove image=%s', image)
 
     def _create_cache(self):
-        if not self.cache_container:
-            log.info('no cache container defined, skipping checks')
+        if not self.cache_volume:
+            log.info('no cache volume defined, skipping checks')
             return True
 
         do_create_cache = False
         try:
-            self.client.inspect_container(self.cache_container)
+            self.client.inspect_volume(self.cache_volume)
         except docker.errors.APIError as ex:
             if ex.is_client_error():
                 do_create_cache = True
-                log.debug('could not find cache container=%s',
-                          self.cache_container)
+                log.debug('could not find cache volume=%s', self.cache_volume)
             else:
                 raise
 
         if do_create_cache:
-            log.debug('creating cache container')
-            self.client.create_container(
-                'busybox',
-                '/bin/true',
-                volumes=[
-                    self.cache_volume,
-                ],
-                name=self.cache_container,
-            )
-            self.client.start(self.cache_container)
+            log.debug('creating cache volume=%s', self.cache_volume)
+            self.client.create_volume(self.cache_volume)
         else:
-            log.info('found cache container=%s', self.cache_container)
+            log.info('found cache volume=%s', self.cache_volume)
         return True
 
     def _get_image(self, name):
@@ -386,29 +377,26 @@ class DockerBuilder(object):
             'BUILD_ARCHIVE_PATH': self.archive_path,
             'BUILD_NAME': self.steps.name,
             'BUILD_VERSION': self.steps.version,
-            'BUILD_CACHE': self.cache_volume,
+            'BUILD_CACHE': self.cache_path,
         }
         if self.extra_env:
             env.update(self.extra_env)
         for k in sorted(env.keys()):
-            log.info('builder env %s = %s', k, env[k])
+            log.debug('builder env %s = %s', k, env[k])
 
-        volumes_from, binds = [], {}
-        if self.cache_container:
-            volumes_from.append(self.cache_container)
-
+        binds = {}
         binds[self.build_dir] = {
             'bind': self.src_volume,
-            'ro': False,
+            'rw': True,
         }
-        if self.cache_hostpath:
-            binds[self.cache_hostpath] = {
-                'bind': self.cache_volume,
+        cache_volume = self.cache_volume or self.cache_hostpath
+        if cache_volume:
+            binds[cache_volume] = {
+                'bind': self.cache_path,
                 'rw': True,
             }
 
         host_config = self.client.create_host_config(
-            volumes_from=volumes_from,
             binds=binds,
         )
 
