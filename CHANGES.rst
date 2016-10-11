@@ -1,3 +1,9 @@
+unreleased
+==========
+
+- [build] The cache volume is now created as a docker volume instead of a
+  data container. It can be controlled using ``docker volume`` commands.
+
 0.1.1 (2016-10-07)
 ==================
 
