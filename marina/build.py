@@ -15,6 +15,8 @@ import threading
 import docker.errors
 import yaml
 
+from .compat import reraise
+
 log = __import__('logging').getLogger(__name__)
 
 def main(cli, args):
@@ -660,6 +662,7 @@ class DockerBuilder(object):
         should_stop = False
 
         signal = threading.Condition()
+        exc_info = []
 
         def watcher():
             log.debug('attaching to container=%s', container)
@@ -670,7 +673,8 @@ class DockerBuilder(object):
                 log.debug('exception caught while attaching to container=%s',
                           container, exc_info=True)
                 log.error('failed to attach to container=%s', container)
-                raise
+                exc_info.append(sys.exc_info())
+                return
             else:
                 log.debug('attached to container=%s', container)
 
@@ -695,7 +699,8 @@ class DockerBuilder(object):
                           container, exc_info=True)
                 log.error('failure while reading from attached container=%s',
                           container)
-                raise
+                exc_info.append(sys.exc_info())
+                return
 
         signal.acquire()
 
@@ -712,6 +717,8 @@ class DockerBuilder(object):
         try:
             yield
             th.join()
+            if exc_info:
+                reraise(*exc_info[0])
         except:
             should_stop = True
             log.debug('detaching early from container=%s', container)

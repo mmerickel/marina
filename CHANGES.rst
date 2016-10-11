@@ -4,6 +4,9 @@ unreleased
 - [build] The cache volume is now created as a docker volume instead of a
   data container. It can be controlled using ``docker volume`` commands.
 
+- [build] Properly exit with an error if there was an issue reading
+  from the container stdout/stderr while attached.
+
 0.1.1 (2016-10-07)
 ==================
 
