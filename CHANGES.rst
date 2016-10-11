@@ -1,6 +1,9 @@
 unreleased
 ==========
 
+- Pin to ``docker-py < 1.10`` until a bug is fixed.
+  See https://github.com/docker/docker-py/issues/1211
+
 - [build] The cache volume is now created as a docker volume instead of a
   data container. It can be controlled using ``docker volume`` commands.
 

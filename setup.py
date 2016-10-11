@@ -11,7 +11,7 @@ with open(os.path.join(here, 'CHANGES.rst')) as fp:
     CHANGES = fp.read()
 
 requires = [
-    'docker-py >= 0.3.2',
+    'docker-py >= 0.3.2,<1.10', # https://github.com/docker/docker-py/issues/1211
     'PyYAML',
     'setuptools',
     'subparse',
