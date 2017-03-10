@@ -35,7 +35,7 @@ def main(cli, args):
         log.info('overriding version tag=%s', args.tag)
         steps.version = args.tag
 
-    builder = DockerBuilder(steps, cli.docker_client)
+    builder = DockerBuilder(steps, lambda: cli.docker_client().api)
     builder.stdout = cli.out
     builder.archive_only = args.archive_only
     builder.archive_file = args.archive
@@ -330,12 +330,9 @@ class DockerBuilder(object):
         do_create_cache = False
         try:
             self.client.inspect_volume(self.cache_volume)
-        except docker.errors.APIError as ex:
-            if ex.is_client_error():
-                do_create_cache = True
-                log.debug('could not find cache volume=%s', self.cache_volume)
-            else:
-                raise
+        except docker.errors.NotFound:
+            do_create_cache = True
+            log.debug('could not find cache volume=%s', self.cache_volume)
 
         if do_create_cache:
             log.debug('creating cache volume=%s', self.cache_volume)

@@ -3,7 +3,6 @@ import os
 import sys
 
 import docker
-import docker.utils
 import pkg_resources
 from subparse import CLI
 from subparse import command
@@ -190,23 +189,9 @@ class MarinaApp(object):
             self.stdout.write(msg)
             self.stdout.flush()
 
-    _docker_kw = None
-
     def docker_client(self):
-        if self._docker_kw is None:
-            # disable hostname verification until
-            # https://github.com/docker/docker-py/issues/731 is resolved
-            kw = docker.utils.kwargs_from_env(assert_hostname=False)
-            if kw:
-                log.debug('found docker parameters:')
-                for k in sorted(kw.keys()):
-                    log.debug('env %s = %s', k, kw[k])
-            else:
-                log.debug('using default docker config, '
-                          'no environ settings found')
-            kw.setdefault('version', 'auto')
-            self._docker_kw = kw
-        return docker.Client(**self._docker_kw)
+        client = docker.from_env()
+        return client
 
 def main(argv=None):
     cli = CLI(
