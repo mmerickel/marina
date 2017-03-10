@@ -28,14 +28,14 @@ entry_points = """
 
 setup(
     name='marina',
-    version='0.2.0',
+    version='0.3.0',
     description='marina manages docker instances',
     long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',
     author='Michael Merickel',
     author_email='michael@merickel.org',
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Programming Language :: Python",

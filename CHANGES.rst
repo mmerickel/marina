@@ -1,3 +1,9 @@
+0.3.0 (2017-03-10)
+==================
+
+- Update to use ``docker`` package instead of the now-defunct ``docker-py``
+  package.
+
 0.2.0 (2016-10-11)
 ==================
 
