@@ -11,7 +11,7 @@ with open(os.path.join(here, 'CHANGES.rst')) as fp:
     CHANGES = fp.read()
 
 requires = [
-    'docker',
+    'docker >= 3.0',
     'PyYAML',
     'setuptools',
     'subparse',
@@ -28,7 +28,7 @@ entry_points = """
 
 setup(
     name='marina',
-    version='0.3.0',
+    version='0.4.0',
     description='marina manages docker instances',
     long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',
