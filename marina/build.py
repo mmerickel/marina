@@ -88,7 +88,7 @@ def main(cli, args):
     return 0
 
 def parse_build_steps(data):
-    settings = yaml.load(data)
+    settings = yaml.safe_load(data)
     return BuildSteps(settings)
 
 def parse_build_steps_from_file(fname):
@@ -395,7 +395,7 @@ class DockerBuilder(object):
             log.debug('starting container=%s', self.source_container)
             self.client.start(self.source_container)
             log.debug('started container=%s', self.source_container)
-            ret = self.client.wait(self.source_container)
+            ret = self.client.wait(self.source_container)['StatusCode']
         if ret != 0:
             log.error('source did not build successfully, status=%s', ret)
         else:
@@ -431,11 +431,11 @@ class DockerBuilder(object):
                     log.debug('starting container=%s', self.archive_container)
                     self.client.start(self.archive_container)
                     log.debug('started container=%s', self.archive_container)
-                    ret = self.client.wait(self.archive_container)
+                    ret = self.client.wait(self.archive_container)['StatusCode']
         finally:
             self._remove_container(self.archive_container)
 
-        if ret != 0:
+        if ret:
             log.error('failed to write archive to file, status=%s', ret)
             os.unlink(self.archive_file)
         else:
@@ -507,8 +507,8 @@ class DockerBuilder(object):
             log.debug('starting container=%s', self.runner_container)
             self.client.start(self.runner_container)
             log.debug('started container=%s', self.runner_container)
-            ret = self.client.wait(self.runner_container)
-        if ret != 0:
+            ret = self.client.wait(self.runner_container)['StatusCode']
+        if ret:
             log.error('failed to install slug into runner, status=%s', ret)
             return False
         log.debug('slug installed into runner container')
@@ -555,13 +555,13 @@ class DockerBuilder(object):
 
         command = conf.get('Cmd')
         if command is not None:
-            if isinstance(command, collections.Sequence):
+            if isinstance(command, collections.abc.Sequence):
                 command = json.dumps(command)
             opts.append('CMD {0}'.format(command))
 
         entrypoint = conf.get('Entrypoint')
         if entrypoint is not None:
-            if isinstance(entrypoint, collections.Sequence):
+            if isinstance(entrypoint, collections.abc.Sequence):
                 entrypoint = json.dumps(entrypoint)
             opts.append('ENTRYPOINT {0}'.format(entrypoint))
 
@@ -595,19 +595,14 @@ class DockerBuilder(object):
         the build output.
 
         """
-        kw['stream'] = True
-        kw['decode'] = False
-        kw['rm'] = True
-        raw_stream = self.client.build(**kw)
-
         stream = io.StringIO()
-        for chunk in decode_chunks(raw_stream):
+        for chunk in self.client.build(rm=True, decode=True, **kw):
             if 'error' in chunk:
                 raise Exception(
                     'error while building image: {0}'.format(chunk['error']),
                     chunk, stream.getvalue(),
                 )
-            else:
+            elif 'stream' in chunk:
                 msg = chunk['stream']
                 self.stdout(msg)
                 stream.write(msg)
@@ -689,16 +684,6 @@ class DockerBuilder(object):
             should_stop = True
             log.debug('detaching early from container=%s', container)
             raise
-
-def decode_chunks(stream):
-    # workaround for https://github.com/docker/docker-py/issues/1134
-    # docker returns more than one JSON in a single response
-    for raw_response in stream:
-        response = raw_response.decode('utf8')
-        raw_chunks = response.strip().split('\r\n')
-        for raw_chunk in raw_chunks:
-            chunk = json.loads(raw_chunk)
-            yield chunk
 
 def get_default_ssh_searchpaths():
     for searchpath in (

@@ -33,7 +33,7 @@ setup(
     long_description=README + '\n\n' + CHANGES,
     url='https://github.com/mmerickel/marina',
     author='Michael Merickel',
-    author_email='michael@merickel.org',
+    author_email='oss@m.merickel.org',
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
