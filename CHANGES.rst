@@ -1,3 +1,8 @@
+0.4.2 (2020-01-28)
+==================
+
+- Avoid blocking the main thread moar so that SIGINT works better.
+
 0.4.1 (2020-01-28)
 ==================
 
