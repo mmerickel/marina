@@ -395,7 +395,7 @@ class DockerBuilder(object):
             log.debug('starting container=%s', self.source_container)
             self.client.start(self.source_container)
             log.debug('started container=%s', self.source_container)
-            ret = self.client.wait(self.source_container)['StatusCode']
+            ret = self._wait(self.source_container)
         if ret != 0:
             log.error('source did not build successfully, status=%s', ret)
         else:
@@ -431,7 +431,7 @@ class DockerBuilder(object):
                     log.debug('starting container=%s', self.archive_container)
                     self.client.start(self.archive_container)
                     log.debug('started container=%s', self.archive_container)
-                    ret = self.client.wait(self.archive_container)['StatusCode']
+                    ret = self._wait(self.archive_container)
         finally:
             self._remove_container(self.archive_container)
 
@@ -507,7 +507,7 @@ class DockerBuilder(object):
             log.debug('starting container=%s', self.runner_container)
             self.client.start(self.runner_container)
             log.debug('started container=%s', self.runner_container)
-            ret = self.client.wait(self.runner_container)['StatusCode']
+            ret = self._wait(self.runner_container)
         if ret:
             log.error('failed to install slug into runner, status=%s', ret)
             return False
@@ -614,6 +614,28 @@ class DockerBuilder(object):
         if not match:
             return None, output
         return match.group(1), output
+
+    def _wait(self, container, timeout=1):
+        result = {}
+
+        def waiter():
+            try:
+                ret = self.client.wait(container)
+            except BaseException:
+                result['exc_info'] = sys.exc_info()
+            else:
+                result['ret'] = ret['StatusCode']
+
+        th = threading.Thread(target=waiter)
+        th.daemon = True
+        th.start()
+
+        # avoid blocking the main thread
+        while th.is_alive():
+            th.join(0.1)
+        if 'exc_info' in result:
+            reraise(*result['exc_info'])
+        return result['ret']
 
     @contextmanager
     def _attach(self, container, stdout=None, encoding='utf8'):
