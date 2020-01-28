@@ -309,17 +309,17 @@ class DockerBuilder(object):
     def _remove_container(self, container):
         try:
             self.client.stop(container)
-        except:
+        except BaseException:
             log.exception('failed to stop container=%s', container)
         try:
             self.client.remove_container(container, v=True)
-        except:
+        except BaseException:
             log.exception('failed to remove container=%s', container)
 
     def _remove_image(self, image):
         try:
             self.client.remove_image(image)
-        except:
+        except BaseException:
             log.exception('failed to remove image=%s', image)
 
     def _create_cache(self):
@@ -630,7 +630,7 @@ class DockerBuilder(object):
             try:
                 stream = client.attach(container, stream=True,
                                        stdout=True, stderr=True)
-            except:
+            except BaseException:
                 log.debug('exception caught while attaching to container=%s',
                           container, exc_info=True)
                 log.error('failed to attach to container=%s', container)
@@ -655,7 +655,7 @@ class DockerBuilder(object):
                         break
                 log.debug('read %d bytes from container=%s',
                           num_bytes, container)
-            except:
+            except BaseException:
                 log.debug('exception caught while reading from container=%s',
                           container, exc_info=True)
                 log.error('failure while reading from attached container=%s',
@@ -677,10 +677,13 @@ class DockerBuilder(object):
         # the thread and let it hang until the process dies
         try:
             yield
-            th.join()
+            # avoid blocking the main thread as it also blocks signal handlers
+            # like KeyboardInterrupt
+            while th.is_alive():
+                th.join(0.1)
             if exc_info:
                 reraise(*exc_info[0])
-        except:
+        except BaseException:
             should_stop = True
             log.debug('detaching early from container=%s', container)
             raise

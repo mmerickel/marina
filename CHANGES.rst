@@ -1,3 +1,8 @@
+0.4.1 (2020-01-28)
+==================
+
+- Avoid blocking the main thread so that SIGINT works better.
+
 0.4.0 (2019-03-25)
 ==================
 
