@@ -372,12 +372,14 @@ class DockerBuilder(object):
                 'rw': True,
             }
 
-        host_config = self.client.create_host_config(
-            binds=binds,
-        )
+        base_image = self.steps.compiler.base_image
+        log.info('pulling image=%s', base_image)
+        self.client.pull(base_image)
+
+        host_config = self.client.create_host_config(binds=binds)
 
         container = self.client.create_container(
-            self.steps.compiler.base_image,
+            base_image,
             command='/bin/bash build.sh',
             working_dir=self.src_volume,
             environment=env,
@@ -489,6 +491,9 @@ class DockerBuilder(object):
 
     def _build_runner_container(self):
         base_image = self.steps.runner.base_image
+
+        log.info('pulling image=%s', base_image)
+        self.client.pull(base_image)
 
         host_config = self.client.create_host_config(
             volumes_from=self.source_container,
